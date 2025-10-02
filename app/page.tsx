@@ -1,7 +1,10 @@
 import NavigationLayout from "@/components/navigation-layout";
 import Image from "next/image";
+import { currentUser } from "@clerk/nextjs/server";
 
-export default function Home() {
+export default async function Home() {
+  const user = await currentUser();
+  const role = user?.publicMetadata.role as string | undefined;
   return (
     <NavigationLayout pageName="Home">
       <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
@@ -14,6 +17,9 @@ export default function Home() {
             height={38}
             priority
           />
+          <p>
+            your user role is: <strong>{role ?? "not set"}</strong>
+          </p>
           <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
             <li className="mb-2 tracking-[-.01em]">
               Get started by editing{" "}

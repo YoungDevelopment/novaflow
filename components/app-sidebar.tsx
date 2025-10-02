@@ -1,7 +1,11 @@
+"use client";
+
 import * as React from "react";
+import Link from "next/link";
+import { useUser } from "@clerk/nextjs";
+import { usePathname } from "next/navigation";
 import { GalleryVerticalEnd, Minus, Plus } from "lucide-react";
 
-import { SearchForm } from "@/components/search-form";
 import {
   Collapsible,
   CollapsibleContent,
@@ -21,155 +25,92 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 
-// This is sample data.
-const data = {
+// ----------------------
+// Types
+// ----------------------
+type NavItem = {
+  title: string;
+  url: string;
+};
+
+type NavSection = {
+  title: string;
+  url: string;
+  allowedRoles?: string[];
+  items?: NavItem[];
+};
+
+// ----------------------
+// Role-based nav config
+// ----------------------
+const data: { navMain: NavSection[] } = {
   navMain: [
     {
       title: "Getting Started",
-      url: "#",
+      url: "/getting-started",
+      allowedRoles: ["owner", "admin", "user"],
       items: [
-        {
-          title: "Installation",
-          url: "#",
-        },
-        {
-          title: "Project Structure",
-          url: "#",
-        },
+        { title: "Installation", url: "/installation" },
+        { title: "Project Structure", url: "/structure" },
       ],
     },
     {
       title: "Building Your Application",
-      url: "#",
+      url: "/building",
+      allowedRoles: ["owner", "admin"],
       items: [
-        {
-          title: "Routing",
-          url: "#",
-        },
-        {
-          title: "Data Fetching",
-          url: "#",
-          isActive: true,
-        },
-        {
-          title: "Rendering",
-          url: "#",
-        },
-        {
-          title: "Caching",
-          url: "#",
-        },
-        {
-          title: "Styling",
-          url: "#",
-        },
-        {
-          title: "Optimizing",
-          url: "#",
-        },
-        {
-          title: "Configuring",
-          url: "#",
-        },
-        {
-          title: "Testing",
-          url: "#",
-        },
-        {
-          title: "Authentication",
-          url: "#",
-        },
-        {
-          title: "Deploying",
-          url: "#",
-        },
-        {
-          title: "Upgrading",
-          url: "#",
-        },
-        {
-          title: "Examples",
-          url: "#",
-        },
+        { title: "Routing", url: "/routing" },
+        { title: "Data Fetching", url: "/data" },
+        { title: "Rendering", url: "/rendering" },
       ],
     },
     {
       title: "API Reference",
-      url: "#",
+      url: "/api",
+      allowedRoles: ["owner", "admin"],
       items: [
-        {
-          title: "Components",
-          url: "#",
-        },
-        {
-          title: "File Conventions",
-          url: "#",
-        },
-        {
-          title: "Functions",
-          url: "#",
-        },
-        {
-          title: "next.config.js Options",
-          url: "#",
-        },
-        {
-          title: "CLI",
-          url: "#",
-        },
-        {
-          title: "Edge Runtime",
-          url: "#",
-        },
+        { title: "Components", url: "/components" },
+        { title: "CLI", url: "/cli" },
       ],
     },
     {
       title: "Architecture",
-      url: "#",
+      url: "/architecture",
+      allowedRoles: ["owner"], // 👈 only owners see this
       items: [
-        {
-          title: "Accessibility",
-          url: "#",
-        },
-        {
-          title: "Fast Refresh",
-          url: "#",
-        },
-        {
-          title: "Next.js Compiler",
-          url: "#",
-        },
-        {
-          title: "Supported Browsers",
-          url: "#",
-        },
-        {
-          title: "Turbopack",
-          url: "#",
-        },
+        { title: "Accessibility", url: "/accessibility" },
+        { title: "Turbopack", url: "/turbopack" },
       ],
     },
     {
       title: "Community",
-      url: "#",
-      items: [
-        {
-          title: "Contribution Guide",
-          url: "#",
-        },
-      ],
+      url: "/community",
+      allowedRoles: ["owner", "admin", "user"],
+      items: [{ title: "Contribution Guide", url: "/contribute" }],
     },
   ],
 };
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+// ----------------------
+// Component
+// ----------------------
+export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
+  const { user } = useUser();
+  const pathname = usePathname();
+  const role = (user?.publicMetadata?.role as string) ?? "user";
+
+  // Filter based on allowedRoles
+  const navItems = data.navMain.filter(
+    (item) => !item.allowedRoles || item.allowedRoles.includes(role)
+  );
+
   return (
     <Sidebar {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="#">
+              <Link href="/">
                 <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                   <GalleryVerticalEnd className="size-4" />
                 </div>
@@ -177,40 +118,40 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <span className="font-medium">Documentation</span>
                   <span className="">v1.0.0</span>
                 </div>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        {/* AR: Removed this as we don't need it for now */}
-        {/* <SearchForm /> */}
       </SidebarHeader>
+
       <SidebarContent>
         <SidebarGroup>
           <SidebarMenu>
-            {data.navMain.map((item, index) => (
+            {navItems.map((item, index) => (
               <Collapsible
                 key={item.title}
-                defaultOpen={index === 1}
+                defaultOpen={index === 0}
                 className="group/collapsible"
               >
                 <SidebarMenuItem>
                   <CollapsibleTrigger asChild>
                     <SidebarMenuButton>
-                      {item.title}{" "}
+                      {item.title}
                       <Plus className="ml-auto group-data-[state=open]/collapsible:hidden" />
                       <Minus className="ml-auto group-data-[state=closed]/collapsible:hidden" />
                     </SidebarMenuButton>
                   </CollapsibleTrigger>
+
                   {item.items?.length ? (
                     <CollapsibleContent>
                       <SidebarMenuSub>
-                        {item.items.map((item) => (
-                          <SidebarMenuSubItem key={item.title}>
+                        {item.items.map((subItem) => (
+                          <SidebarMenuSubItem key={subItem.title}>
                             <SidebarMenuSubButton
                               asChild
-                              isActive={item.isActive}
+                              isActive={pathname === subItem.url}
                             >
-                              <a href={item.url}>{item.title}</a>
+                              <Link href={subItem.url}>{subItem.title}</Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
                         ))}
@@ -223,6 +164,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
+
       <SidebarRail />
     </Sidebar>
   );
