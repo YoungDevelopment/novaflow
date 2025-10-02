@@ -147,6 +147,7 @@ export function CreateUserForm({
                 >
                   <option value="user">User</option>
                   <option value="admin">Admin</option>
+                  <option value="owner">Owner</option>
                 </select>
               </div>
 

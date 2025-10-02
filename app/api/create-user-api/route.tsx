@@ -18,7 +18,10 @@ export async function POST(req: Request) {
     // Get current user and verify admin role
     const currentUser = await clerk.users.getUser(userId);
 
-    if (currentUser.publicMetadata.role !== "admin") {
+    if (
+      currentUser.publicMetadata.role !== "admin" &&
+      currentUser.publicMetadata.role !== "owner"
+    ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
