@@ -48,7 +48,9 @@ export function CreateUserForm({
         if (result.error) {
           throw new Error(result.error);
         } else if (result.errors && Array.isArray(result.errors)) {
-          throw new Error(result.errors.map((e: { message: string }) => e.message).join(", "));
+          throw new Error(
+            result.errors.map((e: { message: string }) => e.message).join(", ")
+          );
         } else {
           throw new Error("Failed to create user");
         }
@@ -80,10 +82,6 @@ export function CreateUserForm({
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-xl">Create Account</CardTitle>
-          <CardDescription>Enter details to create a new user</CardDescription>
-        </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit}>
             <div className="grid gap-6">
