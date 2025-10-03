@@ -12,7 +12,6 @@ export async function POST(req: Request) {
   }
 
   try {
-    // Initialize Clerk client (v5+)
     const clerk = await clerkClient();
 
     // Get current user and verify admin role
@@ -25,7 +24,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Parse request body
     const {
       firstName = "",
       lastName = "",
