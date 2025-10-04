@@ -3,16 +3,10 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner"; // 👈 import toast
+import { createUser } from "../helper"; // ✅ Import helper function
 
 export function CreateUserForm({
   className,
@@ -25,58 +19,11 @@ export function CreateUserForm({
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const data = {
-      firstName: formData.get("firstName"),
-      lastName: formData.get("lastName"),
-      username: formData.get("username"),
-      email: formData.get("email"),
-      password: formData.get("password"),
-      role: formData.get("role") || "user",
-    };
+    const result = await createUser(formData); // ✅ Call helper function
 
-    try {
-      const res = await fetch("/api/create-user-api", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+    if (result.success) e.currentTarget.reset();
 
-      const result = await res.json();
-
-      if (!res.ok) {
-        // Handle Clerk errors
-        if (result.error) {
-          throw new Error(result.error);
-        } else if (result.errors && Array.isArray(result.errors)) {
-          throw new Error(
-            result.errors.map((e: { message: string }) => e.message).join(", ")
-          );
-        } else {
-          throw new Error("Failed to create user");
-        }
-      }
-
-      toast("✅ User created", {
-        description: `${data.email} has been successfully registered.`,
-      });
-
-      // Reset form on success
-      const form = e.currentTarget;
-      if (form && typeof form.reset === "function") {
-        form.reset();
-      }
-    } catch (err: unknown) {
-      let message = "An unexpected error occurred.";
-      if (err instanceof Error) {
-        message = err.message;
-      }
-
-      toast("❌ Error creating user", {
-        description: message,
-      });
-    } finally {
-      setLoading(false);
-    }
+    setLoading(false);
   }
 
   return (
@@ -137,13 +84,13 @@ export function CreateUserForm({
                 />
               </div>
 
-              {/* Role dropdown */}
+              {/* Role */}
               <div className="grid gap-3">
                 <Label htmlFor="role">Role</Label>
                 <select
                   id="role"
                   name="role"
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-ring"
                 >
                   <option value="user">User</option>
                   <option value="admin">Admin</option>

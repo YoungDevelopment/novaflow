@@ -121,6 +121,14 @@ export async function POST(req: Request) {
   } catch (err: any) {
     console.error("Clerk error:", JSON.stringify(err, null, 2));
 
+    // Handle known Clerk error structure
+    if (err?.errors && Array.isArray(err.errors)) {
+      return NextResponse.json(
+        { errors: err.errors },
+        { status: err.status || 400 }
+      );
+    }
+
     // Handle specific Clerk errors
     if (err?.errors?.[0]?.code === "form_identifier_exists") {
       return NextResponse.json(

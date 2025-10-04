@@ -88,6 +88,12 @@ const data: { navMain: NavSection[] } = {
       allowedRoles: ["owner", "admin", "user"],
       items: [{ title: "Contribution Guide", url: "/contribute" }],
     },
+    {
+      title: "OnBoarding",
+      url: "/create-user",
+      allowedRoles: ["owner"], // 👈 only owners see this
+      items: [{ title: "Create a new User", url: "/create-user" }],
+    },
   ],
 };
 

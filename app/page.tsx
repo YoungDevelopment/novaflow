@@ -1,4 +1,4 @@
-import NavigationLayout from "@/components/navigation-layout";
+import NavigationLayout from "@/app/(Auth)/create-user/layout";
 import Image from "next/image";
 import { currentUser } from "@clerk/nextjs/server";
 
