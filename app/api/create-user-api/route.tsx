@@ -4,6 +4,18 @@ import { auth } from "@clerk/nextjs/server";
 
 export const runtime = "nodejs";
 
+interface ClerkAPIErrorItem {
+  code: string;
+  message: string;
+  longMessage?: string;
+  meta?: Record<string, unknown>;
+}
+
+interface ClerkAPIError extends Error {
+  status?: number;
+  errors?: ClerkAPIErrorItem[];
+}
+
 export async function POST(req: Request) {
   const { userId } = await auth();
 
@@ -18,10 +30,13 @@ export async function POST(req: Request) {
     const currentUser = await clerk.users.getUser(userId);
 
     if (
-      currentUser.publicMetadata.role !== "admin" &&
+      // currentUser.publicMetadata.role !== "admin" && //AR: Remove admin restriction, only owner can create users now
       currentUser.publicMetadata.role !== "owner"
     ) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Forbidden - Not Allowed to create new User" },
+        { status: 403 }
+      );
     }
 
     const {
@@ -33,7 +48,6 @@ export async function POST(req: Request) {
       username,
     } = await req.json();
 
-    // Validate required fields
     if (!email || !password) {
       return NextResponse.json(
         { error: "Email and password are required" },
@@ -41,7 +55,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return NextResponse.json(
@@ -50,7 +63,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Validate password strength
     if (password.length < 8) {
       return NextResponse.json(
         { error: "Password must be at least 8 characters long" },
@@ -118,26 +130,24 @@ export async function POST(req: Request) {
         role: validRole,
       },
     });
-  } catch (err: any) {
-    console.error("Clerk error:", JSON.stringify(err, null, 2));
+  } catch (err: unknown) {
+    const error = err as ClerkAPIError;
+    console.error("Clerk error:", JSON.stringify(error, null, 2));
 
-    // Handle known Clerk error structure
-    if (err?.errors && Array.isArray(err.errors)) {
+    if (error?.errors && Array.isArray(error.errors)) {
       return NextResponse.json(
-        { errors: err.errors },
-        { status: err.status || 400 }
+        { errors: error.errors },
+        { status: error.status || 400 }
       );
     }
 
-    // Handle specific Clerk errors
-    if (err?.errors?.[0]?.code === "form_identifier_exists") {
+    if (error?.errors?.[0]?.code === "form_identifier_exists") {
       return NextResponse.json(
         { error: "A user with this email already exists" },
         { status: 409 }
       );
     }
 
-    // Generic error response (don't expose internal details)
     return NextResponse.json(
       { error: "Failed to create user. Please try again." },
       { status: 500 }
