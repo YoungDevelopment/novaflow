@@ -10,8 +10,6 @@ export default clerkMiddleware(async (auth, req) => {
   const { isAuthenticated, redirectToSignIn } = await auth();
 
   if (!isAuthenticated && isProtectedRoute(req)) {
-    // Add custom logic to run before redirecting
-
     return redirectToSignIn();
   }
 });
