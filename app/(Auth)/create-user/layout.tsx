@@ -14,24 +14,22 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { ReactNode } from "react";
-
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
+import { NovaLogo } from "@/components/logo";
 
 interface NavigationLayoutProps {
   children: ReactNode;
   pageName?: string;
 }
 
-export default function NavigationLayout({
-  children,
-  pageName,
-}: NavigationLayoutProps) {
+export default function NavigationLayout({ children }: NavigationLayoutProps) {
   return (
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-16 w-full items-center border-b px-4 justify-between">
-          <div className="flex items-center gap-2">
+        <header className="flex h-16 w-full items-center border-b px-4">
+          {/* Left section */}
+          <div className="flex items-center gap-2 flex-1">
             <SidebarTrigger className="-ml-1" />
             <Separator
               orientation="vertical"
@@ -39,14 +37,13 @@ export default function NavigationLayout({
             />
           </div>
 
-          {/* Page name in center */}
-          {pageName && (
-            <div className="absolute left-1/2 transform -translate-x-1/2">
-              <h1 className="text-lg font-semibold">{pageName}</h1>
-            </div>
-          )}
+          {/* Center section - Logo */}
+          <div className="flex-shrink-0">
+            <NovaLogo />
+          </div>
 
-          <div className="flex items-center gap-2">
+          {/* Right section */}
+          <div className="flex items-center gap-2 flex-1 justify-end">
             <SignedOut>
               <SignInButton />
               <SignUpButton>
@@ -61,7 +58,6 @@ export default function NavigationLayout({
             </SignedIn>
           </div>
         </header>
-
         {/* Page content gets rendered here */}
         <div className="flex flex-1 flex-col">{children}</div>
       </SidebarInset>

@@ -1,7 +1,6 @@
-import { GalleryVerticalEnd } from "lucide-react";
+import { User } from "lucide-react";
 
 import { CreateUserForm } from "@/app/(Auth)/create-user/components/createUserForm";
-
 
 export default function LoginPage() {
   return (
@@ -9,9 +8,9 @@ export default function LoginPage() {
       <div className="flex w-full max-w-sm flex-col gap-6">
         <a href="#" className="flex items-center gap-2 self-center font-medium">
           <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
-            <GalleryVerticalEnd className="size-4" />
+            <User className="size-4 absolute" />
           </div>
-          Acme Inc.
+          Create A New User
         </a>
         <CreateUserForm />
       </div>
