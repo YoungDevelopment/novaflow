@@ -118,26 +118,37 @@ export async function POST(req: Request) {
         role: validRole,
       },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Clerk error:", JSON.stringify(err, null, 2));
 
-    // Handle known Clerk error structure
-    if (err?.errors && Array.isArray(err.errors)) {
+    // Check if it's a Clerk error structure
+    if (
+      typeof err === "object" &&
+      err !== null &&
+      "errors" in err &&
+      Array.isArray((err as any).errors)
+    ) {
+      const clerkErr = err as {
+        errors: { code?: string; message?: string }[];
+        status?: number;
+      };
+
+      // Handle specific Clerk error
+      if (clerkErr.errors[0]?.code === "form_identifier_exists") {
+        return NextResponse.json(
+          { error: "A user with this email already exists" },
+          { status: 409 }
+        );
+      }
+
+      // Generic Clerk structured error
       return NextResponse.json(
-        { errors: err.errors },
-        { status: err.status || 400 }
+        { errors: clerkErr.errors },
+        { status: clerkErr.status || 400 }
       );
     }
 
-    // Handle specific Clerk errors
-    if (err?.errors?.[0]?.code === "form_identifier_exists") {
-      return NextResponse.json(
-        { error: "A user with this email already exists" },
-        { status: 409 }
-      );
-    }
-
-    // Generic error response (don't expose internal details)
+    // Fallback for other unexpected errors
     return NextResponse.json(
       { error: "Failed to create user. Please try again." },
       { status: 500 }
