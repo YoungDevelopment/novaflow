@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/sidebar";
 import { ReactNode } from "react";
 
+import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
+
 interface NavigationLayoutProps {
   children: ReactNode;
   pageName?: string;
@@ -53,6 +55,7 @@ export default function NavigationLayout({
                 </button>
               </SignUpButton>
             </SignedOut>
+            <AnimatedThemeToggler className="pr-4" />
             <SignedIn>
               <UserButton />
             </SignedIn>
