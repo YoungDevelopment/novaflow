@@ -52,7 +52,7 @@ export default function NavigationLayout({ children }: NavigationLayoutProps) {
                 </button>
               </SignUpButton>
             </SignedOut>
-            <AnimatedThemeToggler className="pr-4" />
+            {/* <AnimatedThemeToggler className="pr-4" /> */}
             <SignedIn>
               <UserButton />
             </SignedIn>
