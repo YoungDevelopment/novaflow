@@ -62,19 +62,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Generate & Update Vendor ID
+    const newVendorId = await generateCustomId({
+      tableName: "vendors",
+      idColumnName: "Vendor_ID",
+      prefix: "VDR",
+    });
+
     // Insert data with Vendor_ID=NULL first
     await turso.execute(
       `INSERT INTO vendors (
-        Vendor_ID, Vendor_Name, Vendor_Mask_ID, vendor_name_ci, vendor_mask_ci,
+        Vendor_ID, Vendor_Name, Vendor_Mask_ID, Vendor_Name_CI, Vendor_Mask_CI,
         NTN_Number, STRN_Number, Address_1, Address_2,
         Contact_Number, Contact_Person, Email_ID, Website
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        null,
+        newVendorId,
         input.Vendor_Name.trim(),
         input.Vendor_Mask_ID.trim(),
-        vendorNameCI,
-        vendorMaskCI,
+        input.Vendor_Name,
+        input.Vendor_Mask_ID,
         input.NTN_Number ?? null,
         input.STRN_Number ?? null,
         input.Address_1 ?? null,
@@ -85,13 +92,6 @@ export async function POST(req: NextRequest) {
         input.Website ?? null,
       ]
     );
-
-    // Generate & Update Vendor ID
-    const newVendorId = await generateCustomId({
-      tableName: "vendors",
-      idColumnName: "Vendor_ID",
-      prefix: "VDR",
-    });
 
     // Return success response
     return jsonResponse(
