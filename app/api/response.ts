@@ -1,4 +1,3 @@
-// app/api/response.ts
 /**
  * Global response utilities used by API routes
  *
@@ -6,8 +5,6 @@
  *   import { jsonResponse, errorResponse } from '@/app/api/response';
  *   return jsonResponse(resObj, 201);
  *
- * Notes:
- *   - Next.js app router supports the Response / NextResponse objects. We return NextResponse with JSON body.
  */
 
 import { NextResponse } from "next/server";
