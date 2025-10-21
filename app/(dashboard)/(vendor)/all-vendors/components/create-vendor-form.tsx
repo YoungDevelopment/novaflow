@@ -14,9 +14,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { VendorFormData } from "../interface";
+import { useCreateVendorMutation } from "@/store";
 
 export function CreateVendorForm() {
   const [isOpen, setIsOpen] = useState(false);
+  const [createVendor, { isLoading }] = useCreateVendorMutation();
 
   const [formData, setFormData] = useState<VendorFormData>({
     vendor_name: "",
@@ -59,35 +61,71 @@ export function CreateVendorForm() {
     return true;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateForm()) {
       return;
     }
 
-    console.log("Form submitted:", formData);
-    toast("Vendor form submitted successfully", {
-      description: "Vendor form submitted successfully",
-    });
+    try {
+      // Transform form data to match API structure
+      const vendorData = {
+        Vendor_Name: formData.vendor_name.trim(),
+        Vendor_Mask_ID: formData.vendor_mask_id.trim(),
+        NTN_Number: formData.ntn_number.trim() || null,
+        STRN_Number: formData.strn_number.trim() || null,
+        Address_1: formData.address_line_1.trim() || null,
+        Address_2: formData.address_line_2.trim() || null,
+        Contact_Number: formData.contact_number.trim() || null,
+        Contact_Person: formData.contact_person.trim() || null,
+        Email_ID: formData.email.trim() || null,
+        Website: formData.website.trim() || null,
+      };
 
-    setFormData({
-      vendor_name: "",
-      vendor_mask_id: "",
-      ntn_number: "",
-      strn_number: "",
-      address_line_1: "",
-      address_line_2: "",
-      city: "",
-      province: "",
-      postal_code: "",
-      contact_person: "",
-      contact_number: "",
-      email: "",
-      website: "",
-    });
+      const result = await createVendor(vendorData).unwrap();
 
-    setIsOpen(false);
+      toast("Success", {
+        description: `Vendor "${result.Vendor_Name}" created successfully with ID: ${result.Vendor_ID}`,
+      });
+
+      // Reset form
+      setFormData({
+        vendor_name: "",
+        vendor_mask_id: "",
+        ntn_number: "",
+        strn_number: "",
+        address_line_1: "",
+        address_line_2: "",
+        city: "",
+        province: "",
+        postal_code: "",
+        contact_person: "",
+        contact_number: "",
+        email: "",
+        website: "",
+      });
+      setIsOpen(false);
+    } catch (error: any) {
+      console.error("Error creating vendor:", error);
+
+      // Handle different error types
+      if (error?.data?.error === "ValidationError") {
+        toast("Validation Error", {
+          description:
+            error.data.message || "Please check your input and try again",
+        });
+      } else if (error?.data?.error === "ConflictError") {
+        toast("Conflict Error", {
+          description:
+            error.data.message || "Vendor name or mask ID already exists",
+        });
+      } else {
+        toast("Error", {
+          description: "Failed to create vendor. Please try again.",
+        });
+      }
+    }
   };
 
   return (
@@ -292,8 +330,12 @@ export function CreateVendorForm() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="w-full md:w-auto">
-                  Submit
+                <Button
+                  type="submit"
+                  className="w-full md:w-auto"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Creating..." : "Submit"}
                 </Button>
               </div>
             </form>

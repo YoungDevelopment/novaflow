@@ -1,11 +1,10 @@
 import { type Metadata } from "next";
-import {
-  ClerkProvider,
-} from "@clerk/nextjs";
+import { ClerkProvider } from "@clerk/nextjs";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { ReduxProvider } from "@/store";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,8 +27,9 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en">
-        {/* <ThemeProvider
+      <ReduxProvider>
+        <html lang="en">
+          {/* <ThemeProvider
           attribute="class"
           defaultTheme="light"
           enableSystem
@@ -41,8 +41,9 @@ export default function RootLayout({
             {children}
             <Toaster />
           </body>
-        {/* </ThemeProvider> */}
-      </html>
+          {/* </ThemeProvider> */}
+        </html>
+      </ReduxProvider>
     </ClerkProvider>
   );
 }
