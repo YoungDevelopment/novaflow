@@ -1,4 +1,3 @@
-// app/api/vendor/validators/createVendorValidator.ts
 /**
  * Request body validator for creating a Vendor.
  *
@@ -9,11 +8,10 @@
  *  const parsed = createVendorSchema.parse(body);
  *
  * Business rules:
- *  - Vendor_Name: required, 1..255 chars
- *  - Vendor_Mask_ID: required, 1..64 chars (alphanumeric/underscore/hyphen)
- *  - Optional fields: basic format validation (email, url, contact number) but permissive
+ *  - Vendor_Name: required
+ *  - Vendor_Mask_ID: required
+ *  - Optional fields: basic format validation (email, url, contact number) **but permissive**
  */
-// /app/api/vendor/validators/createVendorValidator.ts
 import { z } from "zod";
 
 export const createVendorSchema = z.object({
