@@ -13,3 +13,17 @@ export interface VendorFormData {
   email: string;
   website: string;
 }
+
+export interface Vendor {
+  Vendor_ID: string;
+  Vendor_Name: string;
+  Vendor_Mask_ID: string;
+  NTN_Number?: string;
+  STRN_Number?: string;
+  Address_1?: string;
+  Address_2?: string;
+  Contact_Number?: string;
+  Contact_Person?: string;
+  Email_ID?: string;
+  Website?: string;
+}
