@@ -15,6 +15,7 @@ import {
   Edit,
   Plus,
 } from "lucide-react";
+import { ProductForm } from "./product-form";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -70,9 +71,11 @@ const RECORDS_PER_PAGE_OPTIONS = [5, 10, 15, 20, 30, 40, 50];
 function ActionMenu({
   product,
   onDelete,
+  onUpdate,
 }: {
   product: Product;
   onDelete: () => void;
+  onUpdate: (product: Product) => void;
 }) {
   const [isDeleting, setIsDeleting] = React.useState(false);
 
@@ -122,6 +125,10 @@ function ActionMenu({
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => onUpdate(product)}>
+          <Edit className="mr-2 h-4 w-4" />
+          Update
+        </DropdownMenuItem>
         <DropdownMenuItem
           onClick={handleDelete}
           disabled={isDeleting}
@@ -129,10 +136,6 @@ function ActionMenu({
         >
           <Trash2 className="mr-2 h-4 w-4" />
           {isDeleting ? "Deleting..." : "Delete"}
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          <Edit className="mr-2 h-4 w-4" />
-          Update
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -160,6 +163,10 @@ export function VendorProductsTable() {
   });
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [vendorsLoading, setVendorsLoading] = React.useState<boolean>(true);
+  const [showProductForm, setShowProductForm] = React.useState(false);
+  const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(
+    null
+  );
 
   React.useEffect(() => {
     const fetchVendors = async () => {
@@ -191,7 +198,6 @@ export function VendorProductsTable() {
         limit: recordsPerPage.toString(),
       });
 
-      // Only add Vendor_ID if a specific vendor is selected (not "All Vendors")
       if (selectedVendor?.id) {
         params.append("Vendor_ID", selectedVendor.id);
       }
@@ -253,6 +259,20 @@ export function VendorProductsTable() {
     fetchProducts();
   };
 
+  const handleCreateProduct = () => {
+    setSelectedProduct(null);
+    setShowProductForm(true);
+  };
+
+  const handleUpdateProduct = (product: Product) => {
+    setSelectedProduct(product);
+    setShowProductForm(true);
+  };
+
+  const handleFormSuccess = () => {
+    fetchProducts();
+  };
+
   const columns: ColumnDef<Product>[] = [
     {
       accessorKey: "Vendor_Name",
@@ -305,7 +325,11 @@ export function VendorProductsTable() {
         const product = row.original;
         return (
           <div className="flex justify-center">
-            <ActionMenu product={product} onDelete={handleDeleteSuccess} />
+            <ActionMenu
+              product={product}
+              onDelete={handleDeleteSuccess}
+              onUpdate={handleUpdateProduct}
+            />
           </div>
         );
       },
@@ -329,51 +353,57 @@ export function VendorProductsTable() {
 
   return (
     <div className="w-full space-y-4 p-2 sm:p-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="flex-1 w-full" />
-        <Button className="gap-2 self-end sm:self-auto">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-lg font-semibold">Vendor Products</h2>
+        <Button className="gap-2" onClick={handleCreateProduct}>
           <Plus className="h-4 w-4" />
           Create New Product
         </Button>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-        <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4 flex-1">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full sm:w-auto bg-transparent"
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+          <label className="text-sm font-medium whitespace-nowrap">
+            Vendor:
+          </label>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto bg-transparent"
+              >
+                {selectedVendor?.name || "Select Vendor"}
+                <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-full sm:w-auto">
+              <DropdownMenuItem
+                onClick={() => handleVendorChange(null)}
+                className={selectedVendor?.id === null ? "bg-accent" : ""}
+              >
+                All Vendors
+              </DropdownMenuItem>
+              {vendors.map((vendor) => (
+                <DropdownMenuItem
+                  key={vendor.Vendor_ID}
+                  onClick={() => handleVendorChange(vendor.Vendor_ID)}
+                  className={
+                    selectedVendor?.id === vendor.Vendor_ID ? "bg-accent" : ""
+                  }
                 >
-                  {selectedVendor?.name || "Select Vendor"}
-                  <ChevronDown className="ml-2 h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                {vendors.map((vendor) => (
-                  <DropdownMenuItem
-                    key={vendor.Vendor_ID}
-                    onClick={() => handleVendorChange(vendor.Vendor_ID)}
-                    className={
-                      selectedVendor?.id === vendor.Vendor_ID ? "bg-accent" : ""
-                    }
-                  >
-                    {vendor.Vendor_Name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-          <div className="flex-1 flex justify-end">
-            <Input
-              placeholder="Search products..."
-              value={searchTerm}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              className="w-full sm:max-w-sm"
-            />
-          </div>
+                  {vendor.Vendor_Name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
+
+        <Input
+          placeholder="Search products..."
+          value={searchTerm}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          className="w-full sm:flex-1"
+        />
       </div>
 
       <div className="overflow-x-auto rounded-md border">
@@ -489,6 +519,14 @@ export function VendorProductsTable() {
           </div>
         </div>
       </div>
+
+      {showProductForm && (
+        <ProductForm
+          product={selectedProduct}
+          onClose={() => setShowProductForm(false)}
+          onSuccess={handleFormSuccess}
+        />
+      )}
     </div>
   );
 }

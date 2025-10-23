@@ -18,7 +18,8 @@ export async function GET(_req: NextRequest) {
     const sql = `
       SELECT
         Vendor_Name,
-        Vendor_ID
+        Vendor_ID,
+        Vendor_Mask_ID
       FROM vendors
       ORDER BY Vendor_Name ASC;
     `;

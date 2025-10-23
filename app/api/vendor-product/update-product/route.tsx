@@ -53,6 +53,20 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
+    const product_description_check = await turso.execute(
+      `SELECT Product_Description FROM vendor_product_code WHERE Product_Description = ? AND Product_Code != ?`,
+      [input.Product_Description || "", input.Product_Code || ""]
+    );
+    if (product_description_check.rows.length > 0) {
+      return errorResponse(
+        {
+          error: "ConflictError",
+          message: "Product_Description already exists",
+        },
+        409
+      );
+    }
+
     // Prepare dynamic update
     const fields: string[] = [];
     const values: any[] = [];
