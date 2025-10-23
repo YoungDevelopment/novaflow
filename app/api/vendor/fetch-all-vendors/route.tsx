@@ -2,9 +2,9 @@
 /**
  * GET /api/vendor/fetch-all-vendors?page=1&limit=10
  *
- * - Uses Turso via `turso.execute(sql, params)`
  * - Fixed sort: Vendor_Name ASC
  * - Pagination: page (default 1), limit (default 10, max 100)
+ * - Database Query
  * - Converts NULL DB values to "" in response objects
  * - Uses jsonResponse / errorResponse from /app/api/response.ts
  *
@@ -14,7 +14,7 @@
 
 import { NextRequest } from "next/server";
 import { turso } from "@/lib/turso";
-import { jsonResponse, errorResponse } from "@/app/api/response";
+import { jsonResponse, errorResponse } from "@/app/api/utils/response";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;

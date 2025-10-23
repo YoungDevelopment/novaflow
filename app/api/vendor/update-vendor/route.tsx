@@ -1,47 +1,30 @@
 /**
- * PATCH /api/vendor/update-vendor
+ * PATCH /api/vendor/update
  *
- * Purpose:
- *  - Update vendor using Vendor_ID
- *  - Only update provided fields (partial update, not replace all)
- *  - Prevent duplicate Vendor_Name or Vendor_Mask_ID (case-insensitive)
- *  - Auto-update Updated_At timestamp
- *  - Return updated vendor with empty strings ("") instead of NULL
+ * Updates only the fields provided in payload.
+ * Validates input using Zod validator file.
+ * Checks for duplicate Vendor_Name or Vendor_Mask_ID (case-insensitive).
+ * Saves empty strings as NULL, but returns them as "".
+ * Automatically updates Updated_At timestamp.
  */
 
 import { NextRequest } from "next/server";
 import { turso } from "@/lib/turso";
-import { errorResponse, jsonResponse } from "@/app/api/response";
-import { z } from "zod";
-
-// ✅ PATCH input schema
-const updateVendorSchema = z.object({
-  Vendor_ID: z.string().trim().min(1, "Vendor_ID is required"),
-  Vendor_Name: z.string().trim().optional(),
-  Vendor_Mask_ID: z.string().trim().optional(),
-  NTN_Number: z.string().optional(),
-  STRN_Number: z.string().optional(),
-  Address_1: z.string().optional(),
-  Address_2: z.string().optional(),
-  Contact_Number: z.string().optional(),
-  Contact_Person: z.string().optional(),
-  Email_ID: z.string().optional(),
-  Website: z.string().optional(),
-});
+import { errorResponse, jsonResponse } from "@/app/api/utils/response";
+import { updateVendorSchema, UpdateVendorInput } from "../validators";
 
 export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json().catch(() => null);
-    if (!body) {
+    if (!body)
       return errorResponse(
         { error: "ValidationError", message: "Request body must be JSON" },
         400
       );
-    }
 
-    // ✅ Validate input
+    // ✅ Validate payload using Zod schema
     const parsed = updateVendorSchema.safeParse(body);
-    if (!parsed.success) {
+    if (!parsed.success)
       return errorResponse(
         {
           error: "ValidationError",
@@ -50,120 +33,86 @@ export async function PATCH(req: NextRequest) {
         },
         400
       );
-    }
 
-    const {
-      Vendor_ID,
-      Vendor_Name,
-      Vendor_Mask_ID,
-      NTN_Number,
-      STRN_Number,
-      Address_1,
-      Address_2,
-      Contact_Number,
-      Contact_Person,
-      Email_ID,
-      Website,
-    } = parsed.data;
+    const data: UpdateVendorInput = parsed.data;
 
     // ✅ Check if vendor exists
-    const existingVendor = await turso.execute(
-      `SELECT * FROM vendors WHERE Vendor_ID = ? LIMIT 1`,
-      [Vendor_ID]
+    const exist = await turso.execute(
+      "SELECT * FROM vendors WHERE Vendor_ID = ? LIMIT 1",
+      [data.Vendor_ID]
     );
-
-    if (existingVendor.rows.length === 0) {
+    if (exist.rows.length === 0)
       return errorResponse(
         {
           error: "NotFoundError",
-          message: `Vendor with ID ${Vendor_ID} not found`,
+          message: `Vendor with ID ${data.Vendor_ID} not found`,
         },
         404
       );
-    }
 
-    // ✅ Duplicate Name / Mask detection (case insensitive)
-    if (Vendor_Name || Vendor_Mask_ID) {
-      const duplicateCheck = await turso.execute(
-        `SELECT Vendor_ID FROM vendors 
+    // ✅ Check duplicates (if name or mask is being updated)
+    if (data.Vendor_Name || data.Vendor_Mask_ID) {
+      const duplicate = await turso.execute(
+        `SELECT Vendor_ID FROM vendors
          WHERE (LOWER(Vendor_Name) = LOWER(?) OR LOWER(Vendor_Mask_ID) = LOWER(?))
          AND Vendor_ID != ? LIMIT 1`,
-        [Vendor_Name || "", Vendor_Mask_ID || "", Vendor_ID]
+        [data.Vendor_Name || "", data.Vendor_Mask_ID || "", data.Vendor_ID]
       );
-
-      if (duplicateCheck.rows.length > 0) {
+      if (duplicate.rows.length > 0)
         return errorResponse(
           {
             error: "ConflictError",
-            message:
-              "Vendor_Name or Vendor_Mask_ID already exists for another vendor",
+            message: "Vendor_Name or Vendor_Mask_ID already exists",
           },
           409
         );
-      }
     }
 
-    // ✅ Build dynamic SQL update
-    const fieldsToUpdate: string[] = [];
+    // ✅ Prepare dynamic update
+    const fields: string[] = [];
     const values: any[] = [];
 
-    const updateFields = {
-      Vendor_Name,
-      Vendor_Mask_ID,
-      NTN_Number,
-      STRN_Number,
-      Address_1,
-      Address_2,
-      Contact_Number,
-      Contact_Person,
-      Email_ID,
-      Website,
-    };
-
-    Object.entries(updateFields).forEach(([key, value]) => {
-      if (value !== undefined) {
-        fieldsToUpdate.push(`${key} = ?`);
-        values.push(value === "" ? null : value); // Save empty as NULL
+    Object.entries(data).forEach(([key, val]) => {
+      if (key !== "Vendor_ID" && val !== undefined) {
+        fields.push(`${key} = ?`);
+        values.push(val === "" ? null : val);
       }
     });
 
-    if (fieldsToUpdate.length === 0) {
+    if (fields.length === 0)
       return errorResponse(
-        {
-          error: "ValidationError",
-          message: "No fields provided to update",
-        },
+        { error: "ValidationError", message: "No fields provided to update" },
         400
       );
-    }
 
-    // ✅ Always update Updated_At timestamp
-    fieldsToUpdate.push("Updated_At = CURRENT_TIMESTAMP");
+    // ✅ Add timestamp update
+    fields.push("Updated_At = CURRENT_TIMESTAMP");
+    values.push(data.Vendor_ID);
 
-    const sql = `UPDATE vendors SET ${fieldsToUpdate.join(
-      ", "
-    )} WHERE Vendor_ID = ?`;
-    values.push(Vendor_ID);
-
-    await turso.execute(sql, values);
-
-    // ✅ Return updated vendor
-    const updated = await turso.execute(
-      `SELECT * FROM vendors WHERE Vendor_ID = ? LIMIT 1`,
-      [Vendor_ID]
+    await turso.execute(
+      `UPDATE vendors SET ${fields.join(", ")} WHERE Vendor_ID = ?`,
+      values
     );
-    const vendor = updated.rows[0];
 
-    // Convert NULL → ""
-    Object.keys(vendor).forEach((key) => {
-      if (vendor[key] === null) vendor[key] = "";
+    // ✅ Fetch & return updated row
+    const updated = await turso.execute(
+      "SELECT * FROM vendors WHERE Vendor_ID = ? LIMIT 1",
+      [data.Vendor_ID]
+    );
+
+    const vendor = updated.rows[0];
+    Object.keys(vendor).forEach((k) => {
+      if (vendor[k] === null) vendor[k] = "";
     });
 
     return jsonResponse(vendor, 200);
   } catch (err: any) {
     console.error("Update vendor error:", err);
     return errorResponse(
-      { error: "InternalError", message: "Unexpected server error" },
+      {
+        error: "InternalError",
+        message: "Unexpected server error",
+      },
       500
     );
   }

@@ -2,7 +2,7 @@
 
 import { NextRequest } from "next/server";
 import { turso } from "@/lib/turso";
-import { jsonResponse, errorResponse } from "@/app/api/response";
+import { jsonResponse, errorResponse } from "@/app/api/utils/response";
 import { deleteVendorSchema } from "../validators/deleteVendorValidator";
 
 export async function DELETE(req: NextRequest) {

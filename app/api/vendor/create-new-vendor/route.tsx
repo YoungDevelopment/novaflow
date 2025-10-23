@@ -13,7 +13,7 @@
 import { NextRequest } from "next/server";
 import { turso } from "@/lib/turso";
 import { generateCustomId } from "../../utils/id-generator";
-import { jsonResponse, errorResponse } from "@/app/api/response";
+import { jsonResponse, errorResponse } from "@/app/api/utils/response";
 import {
   createVendorSchema,
   CreateVendorInput,
