@@ -1,17 +1,14 @@
 // /app/api/vendor/fetch-all-vendors/route.ts
 /**
- * GET /api/vendor/fetch-all-vendors?page=1&limit=10
+ * GET /api/vendor/fetch-all-vendors?Vendor_ID=[vendorId]&page=[page]&limit=[limit]
  *
- * - Fixed sort: Vendor_Name ASC
- * - Pagination: page (default 1), limit (default 10, max 100)
- * - Database Query
- * - Converts NULL DB values to "" in response objects
- * - Uses jsonResponse / errorResponse from /app/api/response.ts
- *
- * Usage:
- * GET /api/vendor/fetch-all-vendors?page=1&limit=10
+ * 1. Validate page and limit
+ * 2. Validate Vendor_ID
+ * 3. Count rows
+ * 4. Fetch joined data
+ * 5. Convert NULL values to ""
+ * 6. Return data with pagination information
  */
-
 import { NextRequest } from "next/server";
 import { turso } from "@/lib/turso";
 import { jsonResponse, errorResponse } from "@/app/api/utils/response";
@@ -38,10 +35,13 @@ function nullsToEmpty(obj: Record<string, any>) {
 export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
+
     const page = toSafeInt(url.searchParams.get("page"), DEFAULT_PAGE);
     const limitRaw = toSafeInt(url.searchParams.get("limit"), DEFAULT_LIMIT);
     const limit = Math.min(limitRaw, MAX_LIMIT);
     const offset = (page - 1) * limit;
+
+    const vendorId = url.searchParams.get("Vendor_ID"); // ✅ Optional
 
     if (page < 1 || limit < 1) {
       return errorResponse(
@@ -53,41 +53,47 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Count total rows
-    const countRes = await turso.execute(
-      `SELECT COUNT(*) AS total FROM vendors;`
-    );
+    // ✅ WHERE for vendor or all
+    const whereClause = vendorId ? "WHERE vpc.Vendor_ID = ?" : "";
+    const params = vendorId ? [vendorId] : [];
+
+    // ✅ Count rows
+    const countSql = `
+      SELECT COUNT(*) AS total
+      FROM vendor_product_code vpc
+      ${whereClause};
+    `;
+    const countRes = await turso.execute(countSql, params);
     const total = countRes?.rows?.[0]?.total ?? 0;
     const totalNum =
       typeof total === "string" ? parseInt(total, 10) : Number(total || 0);
 
-    // Fetch paginated rows (explicit columns to preserve order/shape)
+    // ✅ Fetch joined data
     const selectSql = `
       SELECT
-        Vendor_ID,
-        Vendor_Name,
-        Vendor_Mask_ID,
-        NTN_Number,
-        STRN_Number,
-        Address_1,
-        Address_2,
-        Contact_Number,
-        Contact_Person,
-        Email_ID,
-        Website
-      FROM vendors
-      ORDER BY Vendor_Name ASC
+        vpc.Product_Code,
+        vpc.Vendor_ID,
+        ven.Vendor_Name,
+        vpc.Material,
+        vpc.Width,
+        vpc.Adhesive_Type,
+        vpc.Paper_GSM,
+        vpc.Product_Description,
+        vpc.Created_At,
+        vpc.Updated_At
+      FROM vendor_product_code vpc
+      LEFT JOIN vendors ven ON vpc.Vendor_ID = ven.Vendor_ID
+      ${whereClause}
+      ORDER BY vpc.Product_Code ASC
       LIMIT ? OFFSET ?;
     `;
 
-    const rowsRes = await turso.execute(selectSql, [limit, offset]);
-    const rows = rowsRes?.rows ?? [];
+    const rowsRes = vendorId
+      ? await turso.execute(selectSql, [...params, limit, offset])
+      : await turso.execute(selectSql, [limit, offset]);
 
-    // Map DB rows to ensure all keys present and NULL => ""
-    const data = rows.map((r: Record<string, any>) => {
-      // Some drivers return columns as arrays or objects; assume object shape as used elsewhere
-      return nullsToEmpty(r);
-    });
+    const rows = rowsRes?.rows ?? [];
+    const data = rows.map((r: Record<string, any>) => nullsToEmpty(r));
 
     const totalPages = Math.max(1, Math.ceil(totalNum / limit));
 
@@ -99,15 +105,19 @@ export async function GET(req: NextRequest) {
           page,
           limit,
           totalPages,
+          vendorFiltered: vendorId || "All Vendors",
         },
       },
       200
     );
   } catch (err: any) {
-    console.error("fetch-all-vendors error:", err);
-
-    // Try to surface useful DB error if present
-    const message = err?.message ?? "Failed to fetch vendors";
-    return errorResponse({ error: "InternalError", message }, 500);
+    console.error("fetch-all-products error:", err);
+    return errorResponse(
+      {
+        error: "InternalError",
+        message: err?.message ?? "Failed to fetch products",
+      },
+      500
+    );
   }
 }

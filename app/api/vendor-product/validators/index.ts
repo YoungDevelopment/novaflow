@@ -3,3 +3,4 @@
  */
 export * from "./createVendorProductValidator";
 export * from "./deleteVendorProductValidator";
+export * from "./updateVendorProductValidator";

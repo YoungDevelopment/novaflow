@@ -6,6 +6,7 @@
  * Checks for duplicate Vendor_Name or Vendor_Mask_ID (case-insensitive).
  * Saves empty strings as NULL, but returns them as "".
  * Automatically updates Updated_At timestamp.
+ * returns success message.
  */
 
 import { NextRequest } from "next/server";
@@ -89,23 +90,29 @@ export async function PATCH(req: NextRequest) {
     fields.push("Updated_At = CURRENT_TIMESTAMP");
     values.push(data.Vendor_ID);
 
-    await turso.execute(
-      `UPDATE vendors SET ${fields.join(", ")} WHERE Vendor_ID = ?`,
-      values
+    try {
+      await turso.execute(
+        `UPDATE vendors SET ${fields.join(", ")} WHERE Vendor_ID = ?`,
+        values
+      );
+    } catch (updateErr: any) {
+      console.error("Vendor update DB error:", updateErr);
+      return errorResponse(
+        {
+          error: "UpdateError",
+          message: "Failed to update vendor. Please try again later.",
+        },
+        500
+      );
+    }
+
+    // Return success message
+    return jsonResponse(
+      {
+        message: "Vendor updated successfully",
+      },
+      200
     );
-
-    // ✅ Fetch & return updated row
-    const updated = await turso.execute(
-      "SELECT * FROM vendors WHERE Vendor_ID = ? LIMIT 1",
-      [data.Vendor_ID]
-    );
-
-    const vendor = updated.rows[0];
-    Object.keys(vendor).forEach((k) => {
-      if (vendor[k] === null) vendor[k] = "";
-    });
-
-    return jsonResponse(vendor, 200);
   } catch (err: any) {
     console.error("Update vendor error:", err);
     return errorResponse(
