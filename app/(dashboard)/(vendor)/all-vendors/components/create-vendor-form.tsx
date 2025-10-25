@@ -85,9 +85,9 @@ export function CreateVendorForm() {
 
       const result = await createVendor(vendorData).unwrap();
 
-      toast("Success", {
-        description: `Vendor "${result.Vendor_Name}" created successfully with ID: ${result.Vendor_ID}`,
-      });
+      toast.success(
+        `Vendor "${result.Vendor_Name}" created successfully with ID: ${result.Vendor_ID}`
+      );
 
       // Reset form
       setFormData({
@@ -111,19 +111,15 @@ export function CreateVendorForm() {
 
       // Handle different error types
       if (error?.data?.error === "ValidationError") {
-        toast("Validation Error", {
-          description:
-            error.data.message || "Please check your input and try again",
-        });
+        toast.error(
+          error.data.message || "Please check your input and try again"
+        );
       } else if (error?.data?.error === "ConflictError") {
-        toast("Conflict Error", {
-          description:
-            error.data.message || "Vendor name or mask ID already exists",
-        });
+        toast.error(
+          error.data.message || "Vendor name or mask ID already exists"
+        );
       } else {
-        toast("Error", {
-          description: "Failed to create vendor. Please try again.",
-        });
+        toast.error("Failed to create vendor. Please try again.");
       }
     }
   };

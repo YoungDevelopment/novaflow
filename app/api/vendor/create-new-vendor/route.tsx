@@ -4,15 +4,16 @@
  * Flow:
  *  - Validate payload
  *  - Check uniqueness of Vendor_Name and Vendor_Mask_ID (case-insensitive)
- *  - Insert vendor row (optional fields stored as NULL)
  *  - Generate Vendor_ID as 'VDR-<id>' and update the row
+ *  - Insert vendor row (optional fields stored as NULL)
+ *  - Vendor_Name_CI and Vendor_Mask_CI are created as case-insensitive duplicates of Vendor_Name and Vendor_Mask_ID
  *  - Return the created vendor object (optional fields returned as "")
  *
  */
 import { NextRequest } from "next/server";
 import { turso } from "@/lib/turso";
 import { generateCustomId } from "../../utils/id-generator";
-import { jsonResponse, errorResponse } from "@/app/api/response";
+import { jsonResponse, errorResponse } from "@/app/api/utils/response";
 import {
   createVendorSchema,
   CreateVendorInput,
@@ -20,6 +21,7 @@ import {
 
 export async function POST(req: NextRequest) {
   try {
+    // ✅ Ensure valid JSON payload
     const body = await req.json().catch(() => null);
     if (!body) {
       return errorResponse(
@@ -28,7 +30,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate payload
+    // ✅ Validate using Zod
     const parsed = createVendorSchema.safeParse(body);
     if (!parsed.success) {
       return errorResponse(
@@ -40,17 +42,12 @@ export async function POST(req: NextRequest) {
         400
       );
     }
-
     const input: CreateVendorInput = parsed.data;
 
-    // Convert uniqueness fields to case-insensitive for duplicate check
-    const vendorNameCI = input.Vendor_Name.trim().toLowerCase();
-    const vendorMaskCI = input.Vendor_Mask_ID.trim().toLowerCase();
-
-    // Check duplicate vendor
+    // ✅ Manually check for duplicates
     const existing = await turso.execute(
-      `SELECT id FROM vendors WHERE vendor_name_ci = ? OR vendor_mask_ci = ? LIMIT 1`,
-      [vendorNameCI, vendorMaskCI]
+      `SELECT Vendor_ID FROM vendors WHERE Vendor_Name = ? OR Vendor_Mask_ID = ? LIMIT 1`,
+      [input.Vendor_Name.trim(), input.Vendor_Mask_ID.trim()]
     );
     if (existing.rows.length > 0) {
       return errorResponse(
@@ -62,26 +59,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generate & Update Vendor ID
+    // ✅ Now generate & update Vendor_ID = VDR-<increment>
     const newVendorId = await generateCustomId({
       tableName: "vendors",
       idColumnName: "Vendor_ID",
       prefix: "VDR",
     });
 
-    // Insert data with Vendor_ID=NULL first
+    // ✅ Insert vendor row (Vendor_ID is NULL for now)
     await turso.execute(
       `INSERT INTO vendors (
-        Vendor_ID, Vendor_Name, Vendor_Mask_ID, Vendor_Name_CI, Vendor_Mask_CI,
-        NTN_Number, STRN_Number, Address_1, Address_2,
-        Contact_Number, Contact_Person, Email_ID, Website
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          Vendor_ID, Vendor_Name, Vendor_Mask_ID, 
+          NTN_Number, STRN_Number, Address_1, Address_2,
+          Contact_Number, Contact_Person, Email_ID, Website
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         newVendorId,
         input.Vendor_Name.trim(),
         input.Vendor_Mask_ID.trim(),
-        input.Vendor_Name,
-        input.Vendor_Mask_ID,
         input.NTN_Number ?? null,
         input.STRN_Number ?? null,
         input.Address_1 ?? null,
@@ -93,7 +88,7 @@ export async function POST(req: NextRequest) {
       ]
     );
 
-    // Return success response
+    // ✅ Respond with normalized output
     return jsonResponse(
       {
         Vendor_ID: newVendorId,
@@ -111,6 +106,22 @@ export async function POST(req: NextRequest) {
     );
   } catch (err: any) {
     console.error("Create vendor error:", err);
+
+    // ✅ If UNIQUE constraint failed → return 409 Conflict
+    if (
+      err?.message?.includes("UNIQUE constraint failed") ||
+      err?.message?.toLowerCase().includes("unique")
+    ) {
+      return errorResponse(
+        {
+          error: "ConflictError",
+          message: "Vendor_Name or Vendor_Mask_ID already exists",
+        },
+        409
+      );
+    }
+
+    // ✅ Otherwise → return 500 internal
     return errorResponse(
       {
         error: "InternalError",
