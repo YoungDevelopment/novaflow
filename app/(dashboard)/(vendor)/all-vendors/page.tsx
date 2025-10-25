@@ -2,12 +2,14 @@
 
 import React, { useState } from "react";
 import { CreateVendorForm } from "./components/create-vendor-form";
+import { EditVendorForm } from "./components/edit-vendor-form";
+import { DeleteVendorForm } from "./components/delete-vendor-form";
 import { VendorsTable } from "./components/vendors-table";
 import { Vendor } from "./interface";
 
 const AllVendorsPage = () => {
   // Mock data for demonstration - replace with actual data fetching
-  const [vendors, setVendors] = useState<Vendor[]>([
+  const [vendors] = useState<Vendor[]>([
     {
       Vendor_ID: "1",
       Vendor_Name: "Acme Corporation",
@@ -31,15 +33,32 @@ const AllVendorsPage = () => {
     },
   ]);
 
+  // Dialog state management
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
+
   const handleEdit = (vendor: Vendor) => {
-    console.log("Edit vendor:", vendor);
-    // Implement edit functionality
+    setSelectedVendor(vendor);
+    setEditDialogOpen(true);
   };
 
   const handleDelete = (vendorId: string) => {
-    console.log("Delete vendor:", vendorId);
-    // Implement delete functionality
-    setVendors(vendors.filter((v) => v.Vendor_ID !== vendorId));
+    const vendor = vendors.find((v) => v.Vendor_ID === vendorId);
+    if (vendor) {
+      setSelectedVendor(vendor);
+      setDeleteDialogOpen(true);
+    }
+  };
+
+  const handleEditClose = () => {
+    setEditDialogOpen(false);
+    setSelectedVendor(null);
+  };
+
+  const handleDeleteClose = () => {
+    setDeleteDialogOpen(false);
+    setSelectedVendor(null);
   };
 
   return (
@@ -63,6 +82,20 @@ const AllVendorsPage = () => {
           onDelete={handleDelete}
         />
       </div>
+
+      {/* Edit Dialog */}
+      <EditVendorForm
+        vendor={selectedVendor}
+        isOpen={editDialogOpen}
+        onClose={handleEditClose}
+      />
+
+      {/* Delete Dialog */}
+      <DeleteVendorForm
+        vendor={selectedVendor}
+        isOpen={deleteDialogOpen}
+        onClose={handleDeleteClose}
+      />
     </main>
   );
 };
