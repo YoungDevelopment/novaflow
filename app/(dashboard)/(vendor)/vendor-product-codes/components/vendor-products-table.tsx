@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, Loader2, Trash2, Edit, Plus } from "lucide-react";
+import { ChevronDown, Trash2, Edit, Plus } from "lucide-react";
 import { ProductForm } from "./product-form";
+import { DeleteProductForm } from "./delete-product-form";
 import {
   DataTable,
   createColumn,
@@ -21,6 +22,7 @@ import {
   useFetchVendorNamesQuery,
   useDeleteProductMutation,
 } from "@/store/endpoints/vendorProducts";
+import { CompactLoader } from "@/app/(dashboard)/components";
 
 export function VendorProductsTable() {
   const [selectedVendor, setSelectedVendor] = React.useState<{
@@ -34,6 +36,10 @@ export function VendorProductsTable() {
   const [recordsPerPage, setRecordsPerPage] = React.useState<number>(10);
   const [showProductForm, setShowProductForm] = React.useState(false);
   const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(
+    null
+  );
+  const [showDeleteForm, setShowDeleteForm] = React.useState(false);
+  const [productToDelete, setProductToDelete] = React.useState<Product | null>(
     null
   );
   const [searchTerm, setSearchTerm] = React.useState<string>("");
@@ -60,8 +66,6 @@ export function VendorProductsTable() {
       Vendor_ID: selectedVendor?.id || undefined,
       search: debouncedSearchTerm || undefined,
     });
-
-  const [deleteProduct] = useDeleteProductMutation();
 
   // Extract data from RTK Query responses
   const vendors = vendorsData?.data || [];
@@ -98,21 +102,14 @@ export function VendorProductsTable() {
     setCurrentPage(1); // Reset to first page when searching
   };
 
-  const handleDelete = async (product: Product) => {
-    if (
-      !confirm(
-        `Are you sure you want to delete product ${product.Product_Code}?`
-      )
-    ) {
-      return;
-    }
+  const handleDelete = (product: Product) => {
+    setProductToDelete(product);
+    setShowDeleteForm(true);
+  };
 
-    try {
-      await deleteProduct({ Product_Code: product.Product_Code }).unwrap();
-    } catch (error) {
-      console.error("Error deleting product:", error);
-      alert("Failed to delete product");
-    }
+  const handleDeleteFormClose = () => {
+    setShowDeleteForm(false);
+    setProductToDelete(null);
   };
 
   const handleCreateProduct = () => {
@@ -174,7 +171,7 @@ export function VendorProductsTable() {
       pageSize: recordsPerPage,
       pageSizeOptions: [5, 10, 15, 20, 30, 40, 50],
     },
-    loading: productsLoading,
+    loading: productsLoading || vendorsLoading,
     emptyMessage: "No products found.",
     noResultsMessage: "No products found matching your search.",
   };
@@ -223,35 +220,40 @@ export function VendorProductsTable() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <Button className="gap-2" onClick={handleCreateProduct}>
-        <Plus className="h-4 w-4" />
-        Create New Product
-      </Button>
     </div>
   );
 
-  if (vendorsLoading) {
-    return (
-      <div className="flex items-center justify-center gap-2 py-8">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        <span>Loading vendors...</span>
-      </div>
-    );
-  }
+  const footerActions = (
+    <Button className="gap-2" onClick={handleCreateProduct}>
+      <Plus className="h-4 w-4" />
+      Create New Product
+    </Button>
+  );
 
   return (
-    <div className="w-full space-y-4 p-2 sm:p-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-lg font-semibold">Vendor Products</h2>
-      </div>
+    <div className="w-full space-y-4">
+      <div className="relative">
+        <DataTable
+          data={data}
+          config={config}
+          headerActions={headerActions}
+          searchValue={searchTerm}
+          externalPagination={externalPagination}
+          footerActions={footerActions}
+        />
 
-      <DataTable
-        data={data}
-        config={config}
-        headerActions={headerActions}
-        searchValue={searchTerm}
-        externalPagination={externalPagination}
-      />
+        {/* Loading overlay for all API calls */}
+        {(productsLoading || vendorsLoading) && (
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10">
+            <div className="flex items-center gap-2">
+              <CompactLoader />
+              <span className="text-sm">
+                {vendorsLoading ? "Loading vendors..." : "Loading products..."}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
 
       {showProductForm && (
         <ProductForm
@@ -260,6 +262,13 @@ export function VendorProductsTable() {
           onSuccess={handleFormSuccess}
         />
       )}
+
+      {/* Delete Dialog */}
+      <DeleteProductForm
+        product={productToDelete}
+        isOpen={showDeleteForm}
+        onClose={handleDeleteFormClose}
+      />
     </div>
   );
 }

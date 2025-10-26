@@ -10,6 +10,8 @@ export interface Vendor {
   Contact_Person?: string;
   Email_ID?: string;
   Website?: string;
+  Created_At?: string;
+  Updated_At?: string;
 }
 
 export interface CreateVendorRequest {
@@ -37,4 +39,21 @@ export interface UpdateVendorRequest {
   Contact_Person?: string | null;
   Email_ID?: string | null;
   Website?: string | null;
+}
+
+export interface VendorApiResponse {
+  data: Vendor[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    search: string;
+  };
+}
+
+export interface FetchVendorsParams {
+  search?: string;
+  page?: number;
+  limit?: number;
 }

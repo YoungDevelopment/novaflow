@@ -104,6 +104,7 @@ export interface DataTableProps<T> {
     onPageChange: (page: number) => void;
     onPageSizeChange: (size: number) => void;
   };
+  footerActions?: React.ReactNode; // For passing custom actions in the footer (e.g., Create button)
 }
 
 const DEFAULT_PAGE_SIZE_OPTIONS = [5, 10, 15, 20, 30, 40, 50];
@@ -116,6 +117,7 @@ export function DataTable<T extends Record<string, any>>({
   headerActions,
   searchValue,
   externalPagination,
+  footerActions,
 }: DataTableProps<T>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -279,15 +281,8 @@ export function DataTable<T extends Record<string, any>>({
           {headerActions}
         </div>
 
-        {config.pagination?.enabled && (
-          <div className="text-sm text-muted-foreground">
-            {externalPagination
-              ? `${externalPagination.totalItems} total entries`
-              : `${table.getFilteredRowModel().rows.length} of ${
-                  data.length
-                } entries`}
-          </div>
-        )}
+        {/* Pass buttons in the footer */}
+        {footerActions}
       </div>
 
       {/* Table */}

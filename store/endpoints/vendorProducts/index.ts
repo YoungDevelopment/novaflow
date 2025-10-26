@@ -54,7 +54,7 @@ export const vendorProductsApi = baseApi.injectEndpoints({
     updateProduct: builder.mutation<Product, UpdateProductRequest>({
       query: (product) => ({
         url: "/vendor-product/update-product",
-        method: "PUT",
+        method: "PATCH",
         body: product,
       }),
       invalidatesTags: ["VendorProduct"],

@@ -1,4 +1,4 @@
 /**
  * Barrel export for vendor interfaces
  */
-export * from "./create-vendor-form-interface";
+export * from "./form.interface";

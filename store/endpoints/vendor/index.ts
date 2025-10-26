@@ -1,5 +1,11 @@
 import { baseApi } from "../../baseApi";
-import { Vendor, CreateVendorRequest, UpdateVendorRequest } from "./type";
+import {
+  Vendor,
+  CreateVendorRequest,
+  UpdateVendorRequest,
+  VendorApiResponse,
+  FetchVendorsParams,
+} from "./type";
 
 // Inject vendor endpoints into the base API
 export const vendorApi = baseApi.injectEndpoints({
@@ -16,8 +22,8 @@ export const vendorApi = baseApi.injectEndpoints({
     // Update existing vendor
     updateVendor: builder.mutation<Vendor, UpdateVendorRequest>({
       query: (vendor) => ({
-        url: `/vendor/${vendor.Vendor_ID}`,
-        method: "PUT",
+        url: "/vendor/update-vendor",
+        method: "PATCH",
         body: vendor,
       }),
       invalidatesTags: ["Vendor"],
@@ -25,10 +31,27 @@ export const vendorApi = baseApi.injectEndpoints({
     // Delete vendor
     deleteVendor: builder.mutation<{ success: boolean }, string>({
       query: (vendorId) => ({
-        url: `/vendor/${vendorId}`,
+        url: "/vendor/delete-vendor",
         method: "DELETE",
+        body: { Vendor_ID: vendorId },
       }),
       invalidatesTags: ["Vendor"],
+    }),
+    // Fetch all vendors with pagination and filtering
+    fetchVendors: builder.query<VendorApiResponse, FetchVendorsParams>({
+      query: (params) => {
+        const searchParams = new URLSearchParams();
+
+        if (params.search) searchParams.append("search", params.search);
+        if (params.page) searchParams.append("page", params.page.toString());
+        if (params.limit) searchParams.append("limit", params.limit.toString());
+
+        return {
+          url: `/vendor/fetch-all-vendors?${searchParams}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["Vendor"],
     }),
   }),
 });
@@ -38,4 +61,5 @@ export const {
   useCreateVendorMutation,
   useUpdateVendorMutation,
   useDeleteVendorMutation,
+  useFetchVendorsQuery,
 } = vendorApi;

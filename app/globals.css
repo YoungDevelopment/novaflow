@@ -44,6 +44,14 @@
 }
 :root {
   --radius: 0.65rem;
+  /* Button State Colors */
+  --button-create: oklch(70.4% 0.191 22.216);
+  --button-create-hover: oklch(65% 0.171 22.216);
+  --button-update: oklch(68.5% 0.169 237.323);
+  --button-update-hover: oklch(63% 0.149 237.323);
+  --button-success: oklch(65% 0.181 142);
+  --button-success-hover: oklch(60% 0.161 142);
+
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(1 0 0);
@@ -78,6 +86,13 @@
 }
 
 .dark {
+  --button-create: oklch(70.4% 0.191 22.216);
+  --button-create-hover: oklch(75% 0.211 22.216);
+  --button-update: oklch(68.5% 0.169 237.323);
+  --button-update-hover: oklch(73% 0.189 237.323);
+  --button-success: oklch(65% 0.181 142);
+  --button-success-hover: oklch(70% 0.201 142);
+
   --background: oklch(0.141 0.005 285.823);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.21 0.006 285.885);
