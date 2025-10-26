@@ -19,6 +19,7 @@ import {
   useUpdateProductMutation,
   useFetchVendorNamesQuery,
 } from "@/store/endpoints/vendorProducts";
+import { getApiUrl } from "@/lib/api-config";
 
 export function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
   const [materials, setMaterials] = React.useState<Material[]>([]);
@@ -59,8 +60,8 @@ export function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
     const fetchData = async () => {
       try {
         const [materialsRes, adhesivesRes] = await Promise.all([
-          fetch("/api/collection/fetch-all-material"),
-          fetch("/api/collection/fetch-all-adhesive"),
+          fetch(getApiUrl("/collection/fetch-all-material")),
+          fetch(getApiUrl("/collection/fetch-all-adhesive")),
         ]);
 
         if (!materialsRes.ok || !adhesivesRes.ok) {

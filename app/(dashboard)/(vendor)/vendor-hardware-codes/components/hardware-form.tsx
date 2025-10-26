@@ -19,6 +19,7 @@ import {
   useUpdateHardwareMutation,
   useFetchVendorNamesQuery,
 } from "@/store";
+import { getApiUrl } from "@/lib/api-config";
 
 export function HardwareForm({
   hardware,
@@ -61,7 +62,9 @@ export function HardwareForm({
   React.useEffect(() => {
     const fetchData = async () => {
       try {
-        const hardwareRes = await fetch("/api/collection/fetch-all-hardware");
+        const hardwareRes = await fetch(
+          getApiUrl("/collection/fetch-all-hardware")
+        );
 
         if (!hardwareRes.ok) {
           throw new Error("Failed to fetch hardware collection");

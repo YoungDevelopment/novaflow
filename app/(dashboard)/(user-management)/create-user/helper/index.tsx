@@ -1,6 +1,7 @@
 "use client";
 
 import { toast } from "sonner";
+import { getApiUrl } from "@/lib/api-config";
 
 export async function createUser(formData: FormData) {
   const data = {
@@ -13,7 +14,7 @@ export async function createUser(formData: FormData) {
   };
 
   try {
-    const res = await fetch("/api/create-user-api", {
+    const res = await fetch(getApiUrl("/create-user-api"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
