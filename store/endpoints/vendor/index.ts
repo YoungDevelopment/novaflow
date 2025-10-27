@@ -4,6 +4,14 @@ import { Vendor, CreateVendorRequest, UpdateVendorRequest } from "./type";
 // Inject vendor endpoints into the base API
 export const vendorApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    // Fetch all vendors with a limit of 1000
+    getVendors: builder.query<{ data: Vendor[]; pagination: any }, void>({
+      query: () => ({
+        url: "/vendor/fetch-all-vendors?limit=1000&page=1",
+        method: "GET",
+      }),
+      providesTags: ["Vendor"],
+    }),
     // Create new vendor
     createVendor: builder.mutation<Vendor, CreateVendorRequest>({
       query: (vendor) => ({
@@ -35,6 +43,7 @@ export const vendorApi = baseApi.injectEndpoints({
 
 // Export hooks for usage in functional components
 export const {
+  useGetVendorsQuery,
   useCreateVendorMutation,
   useUpdateVendorMutation,
   useDeleteVendorMutation,

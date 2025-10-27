@@ -18,7 +18,7 @@ import { jsonResponse, errorResponse } from "@/app/api/utils/response";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
-const MAX_LIMIT = 100;
+const MAX_LIMIT = 1000;
 
 function toSafeInt(value: string | null, fallback: number) {
   if (!value) return fallback;

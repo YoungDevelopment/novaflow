@@ -73,6 +73,11 @@ export function VendorsTable({ data, onEdit, onDelete }: VendorsTableProps) {
       "NTN_Number",
       "STRN_Number",
     ] as (keyof Vendor)[],
+    pagination: {
+      enabled: true,
+      pageSize: 10,
+      pageSizeOptions: [5, 10, 20, 30, 50, 100],
+    },
     emptyMessage: "No vendors found.",
     noResultsMessage: "No vendors found matching your search.",
   };

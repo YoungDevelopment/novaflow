@@ -127,6 +127,26 @@ export function DataTable<T extends Record<string, any>>({
     pageSize: config.pagination?.pageSize || 10,
   });
 
+  // Handle edge case where pagination is out of bounds after filtering/search
+  React.useEffect(() => {
+    if (data.length > 0 && config.pagination?.enabled && !externalPagination) {
+      const totalPages = Math.ceil(data.length / pagination.pageSize);
+      // If current page index is out of bounds, go to last page
+      if (pagination.pageIndex >= totalPages && totalPages > 0) {
+        setPagination((prev) => ({
+          ...prev,
+          pageIndex: totalPages - 1,
+        }));
+      }
+    }
+  }, [
+    data.length,
+    pagination.pageSize,
+    pagination.pageIndex,
+    config.pagination?.enabled,
+    externalPagination,
+  ]);
+
   // Convert our custom columns to TanStack Table columns
   const columns: ColumnDef<T>[] = React.useMemo(() => {
     const tableColumns: ColumnDef<T>[] = config.columns.map((col) => ({
@@ -230,6 +250,8 @@ export function DataTable<T extends Record<string, any>>({
           }
         : pagination,
     },
+    // Prevent auto-reset to page 1 when data changes (e.g., after cache invalidation)
+    autoResetPageIndex: false,
     globalFilterFn: config.backendSearch
       ? undefined
       : config.searchFields
