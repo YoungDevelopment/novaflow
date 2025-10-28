@@ -3,3 +3,4 @@
  */
 export * from "./createOrderHeaderValidator";
 export * from "./updateOrderHeaderValidator";
+export * from "./fetchOrderHeaderValidator";
