@@ -11,6 +11,12 @@ export const baseApi = createApi({
       return headers;
     },
   }),
-  tagTypes: ["Vendor", "VendorProduct", "VendorHardware"],
+  tagTypes: [
+    "Vendor",
+    "VendorProduct",
+    "VendorHardware",
+    "OrderHeader",
+    "OrderConfig",
+  ],
   endpoints: () => ({}), // Empty endpoints object - will be injected
 });
