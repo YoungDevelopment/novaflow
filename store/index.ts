@@ -6,3 +6,4 @@ export * from "./hooks";
 export * from "./endpoints/vendor";
 export * from "./endpoints/vendorProducts";
 export * from "./endpoints/vendorHardware";
+export * from "./endpoints/orderNotes";
