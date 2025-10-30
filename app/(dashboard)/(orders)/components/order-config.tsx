@@ -14,7 +14,7 @@ import {
 import { useFetchOrderConfigQuery, usePatchOrderConfigMutation } from "@/store";
 import { LoaderThree } from "@/components/ui/loader";
 import { toast } from "sonner";
-import { useDebounce } from "@/hooks/use-debounce";
+// unified debounce across all fields; per-field debounce removed
 
 interface OrderConfigProps {
   orderId: string;
@@ -31,13 +31,7 @@ const OrderConfig: React.FC<OrderConfigProps> = ({ orderId, orderType }) => {
   const [taxPercentage, setTaxPercentage] = useState<string>("");
   const [calendarOpen, setCalendarOpen] = useState(false);
 
-  // Debounced values for API calls
-  const debouncedGatePass = useDebounce(gatePass, 3000);
-  const debouncedPurchaseOrder = useDebounce(purchaseOrder, 3000);
-  const debouncedCommittedDate = useDebounce(committedDate, 3000);
-  const debouncedTaxPercentage = useDebounce(taxPercentage, 3000);
-
-  // Track previous debounced values to prevent duplicate API calls
+  // Track previous sent values to prevent duplicate API calls
   const prevDebouncedValues = useRef({
     gatePass: "",
     purchaseOrder: "",
@@ -130,62 +124,60 @@ const OrderConfig: React.FC<OrderConfigProps> = ({ orderId, orderType }) => {
     }
   }, [orderConfigData]);
 
-  // Debounced API calls - only trigger when values actually change
+  // Unified debounce across all fields: waits 3s of inactivity, batches changes
   useEffect(() => {
-    if (
-      hasInitiallyLoaded.current &&
-      debouncedGatePass !== prevDebouncedValues.current.gatePass
-    ) {
-      updateOrderConfig({ gate_pass: debouncedGatePass || null });
-      prevDebouncedValues.current.gatePass = debouncedGatePass;
-    }
-  }, [debouncedGatePass, updateOrderConfig]);
+    if (!hasInitiallyLoaded.current) return;
 
-  useEffect(() => {
-    if (
-      hasInitiallyLoaded.current &&
-      debouncedPurchaseOrder !== prevDebouncedValues.current.purchaseOrder
-    ) {
-      updateOrderConfig({ entity_order: debouncedPurchaseOrder || null });
-      prevDebouncedValues.current.purchaseOrder = debouncedPurchaseOrder;
-    }
-  }, [debouncedPurchaseOrder, updateOrderConfig]);
+    const timer = setTimeout(() => {
+      const updates: {
+        gate_pass?: string | null;
+        entity_order?: string | null;
+        committed_date?: string | null;
+        tax_percentage?: number;
+      } = {};
 
-  useEffect(() => {
-    if (hasInitiallyLoaded.current) {
+      // gate_pass
+      if (gatePass !== prevDebouncedValues.current.gatePass) {
+        updates.gate_pass = gatePass || null;
+      }
+
+      // entity_order
+      if (purchaseOrder !== prevDebouncedValues.current.purchaseOrder) {
+        updates.entity_order = purchaseOrder || null;
+      }
+
+      // committed_date (compare Date by time)
       const prevDate = prevDebouncedValues.current.committedDate;
-      const currentDate = debouncedCommittedDate;
-
-      // Compare dates properly
+      const currDate = committedDate;
       const datesEqual =
-        (!prevDate && !currentDate) ||
-        (prevDate &&
-          currentDate &&
-          prevDate.getTime() === currentDate.getTime());
-
+        (!prevDate && !currDate) ||
+        (prevDate && currDate && prevDate.getTime() === currDate.getTime());
       if (!datesEqual) {
-        updateOrderConfig({
-          committed_date: currentDate ? currentDate.toISOString() : null,
-        });
-        prevDebouncedValues.current.committedDate = currentDate;
+        updates.committed_date = currDate ? currDate.toISOString() : null;
       }
-    }
-  }, [debouncedCommittedDate, updateOrderConfig]);
 
-  useEffect(() => {
-    if (
-      hasInitiallyLoaded.current &&
-      debouncedTaxPercentage !== prevDebouncedValues.current.taxPercentage
-    ) {
-      const numericValue = debouncedTaxPercentage.replace(/[^0-9.]/g, "");
-      if (numericValue === "" || !isNaN(parseFloat(numericValue))) {
-        updateOrderConfig({
-          tax_percentage: numericValue ? parseFloat(numericValue) : 0,
-        });
-        prevDebouncedValues.current.taxPercentage = debouncedTaxPercentage;
+      // tax_percentage (string input -> number, keep previous if identical string)
+      if (taxPercentage !== prevDebouncedValues.current.taxPercentage) {
+        const numeric = taxPercentage.replace(/[^0-9.]/g, "");
+        if (numeric === "" || !isNaN(parseFloat(numeric))) {
+          updates.tax_percentage = numeric ? parseFloat(numeric) : 0;
+        }
       }
-    }
-  }, [debouncedTaxPercentage, updateOrderConfig]);
+
+      if (Object.keys(updates).length > 0) {
+        updateOrderConfig(updates);
+        // Update prev values only after successful schedule of updates
+        prevDebouncedValues.current = {
+          gatePass,
+          purchaseOrder,
+          committedDate,
+          taxPercentage,
+        };
+      }
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [gatePass, purchaseOrder, committedDate, taxPercentage, updateOrderConfig]);
 
   // Handle input changes
   const handleGatePassChange = (value: string) => {

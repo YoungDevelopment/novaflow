@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import OrderConfig from "../components/order-config";
 import OrderDetails from "../components/order-header";
+import OrderNote from "../components/order-note";
 
 interface PurchaseOrderFormClientProps {
   searchParams: {
@@ -19,6 +20,7 @@ export default function PurchaseOrderFormClient({
   const [currentOrderId, setCurrentOrderId] = useState<string | undefined>(
     Order_ID
   );
+  const effectiveOrderId = currentOrderId ?? Order_ID;
 
   // Update currentOrderId when Order_ID from searchParams changes
   useEffect(() => {
@@ -34,8 +36,11 @@ export default function PurchaseOrderFormClient({
         orderType={orderType}
         onOrderCreated={(orderId) => setCurrentOrderId(orderId)}
       />
-      {currentOrderId && (
-        <OrderConfig orderId={currentOrderId} orderType={orderType} />
+      {effectiveOrderId && (
+        <>
+          <OrderConfig orderId={effectiveOrderId} orderType={orderType} />
+          <OrderNote orderId={effectiveOrderId} orderType={orderType} />
+        </>
       )}
     </main>
   );

@@ -103,7 +103,7 @@ const OrderNote: React.FC<OrderNoteProps> = ({ orderId }) => {
   }
 
   return (
-    <div className="w-full bg-white ">
+    <div className="w-full pt-4 bg-white ">
       <div className="flex flex-col gap-2">
         <Label htmlFor="order-note" className="mb-1 block">
           Notes
