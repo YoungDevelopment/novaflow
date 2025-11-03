@@ -96,6 +96,12 @@ const data: { navMain: NavSection[] } = {
       items: [{ title: "Create a new User", url: "/create-user" }],
     },
     {
+      title: "Orders",
+      url: "/orders",
+      allowedRoles: ["owner"], // 👈 only owners see this
+      items: [{ title: "All Orders", url: "/all-orders" }],
+    },
+    {
       title: "Vendors",
       url: "/vendors",
       allowedRoles: ["owner"], // 👈 only owners see this
