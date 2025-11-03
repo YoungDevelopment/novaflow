@@ -1,7 +1,7 @@
 /**
- * GET /api/order-list/fetch-orders?type=Purchase&page=1&limit=10&entity_id=ENT-1&status=Active&created_date=2024-01-01
+ * GET /api/order-list/fetch-orders?type=Purchase&page=1&limit=10&entity_id=ENT-1&status=Active&start_date=2024-01-01&end_date=2024-01-31
  *
- * Fetches a paginated list of orders filtered by type, entity_id, status(es), and created_date.
+ * Fetches a paginated list of orders filtered by type, entity_id, status(es), and date range.
  * Returns paginated results with total count.
  * Returns 404 if no orders found.
  *
@@ -12,7 +12,8 @@
  * GET /api/order-list/fetch-orders?type=Purchase&status=Active
  * GET /api/order-list/fetch-orders?type=Purchase&status=Active,Completed,Pending
  * GET /api/order-list/fetch-orders?type=Purchase&created_date=2024-01-01
- * GET /api/order-list/fetch-orders?type=Purchase&entity_id=ENT-1&status=Active,Completed&created_date=2024-01-01&page=1&limit=10
+ * GET /api/order-list/fetch-orders?type=Purchase&start_date=2024-01-01&end_date=2024-01-31
+ * GET /api/order-list/fetch-orders?type=Purchase&entity_id=ENT-1&status=Active,Completed&start_date=2024-01-01&end_date=2024-01-31&page=1&limit=10
  */
 
 import { NextRequest } from "next/server";
@@ -43,6 +44,8 @@ export async function GET(req: NextRequest) {
     const entityId = url.searchParams.get("entity_id");
     const status = url.searchParams.get("status");
     const createdDate = url.searchParams.get("created_date");
+    const startDate = url.searchParams.get("start_date");
+    const endDate = url.searchParams.get("end_date");
 
     // ✅ Validate parameters using Zod
     const parsed = fetchOrderListSchema.safeParse({
@@ -52,6 +55,8 @@ export async function GET(req: NextRequest) {
       entity_id: entityId,
       status,
       created_date: createdDate,
+      start_date: startDate,
+      end_date: endDate,
     });
 
     if (!parsed.success) {
@@ -90,10 +95,22 @@ export async function GET(req: NextRequest) {
       params.push(...validatedData.status);
     }
 
-    // Handle created_date filter (exact date match or date range)
+    // Handle created_date filter (exact date match)
     if (validatedData.created_date) {
       where.push("DATE(created_at) = ?");
       params.push(validatedData.created_date);
+    }
+
+    // Handle date range filter (start_date and end_date)
+    if (validatedData.start_date && validatedData.end_date) {
+      where.push("DATE(created_at) >= ? AND DATE(created_at) <= ?");
+      params.push(validatedData.start_date, validatedData.end_date);
+    } else if (validatedData.start_date) {
+      where.push("DATE(created_at) >= ?");
+      params.push(validatedData.start_date);
+    } else if (validatedData.end_date) {
+      where.push("DATE(created_at) <= ?");
+      params.push(validatedData.end_date);
     }
 
     const whereClause = `WHERE ${where.join(" AND ")}`;

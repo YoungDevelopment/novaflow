@@ -14,6 +14,8 @@
  *  - entity_id: optional search filter (LIKE matching)
  *  - status: optional comma-separated list of statuses (e.g., "Active,Completed,Pending")
  *  - created_date: optional date filter for exact date match (format: YYYY-MM-DD)
+ *  - start_date: optional start date for date range filter (format: YYYY-MM-DD)
+ *  - end_date: optional end date for date range filter (format: YYYY-MM-DD)
  */
 
 import { z } from "zod";
@@ -53,6 +55,8 @@ export const fetchOrderListSchema = z.object({
         .filter((s) => s.length > 0);
     }),
   created_date: z.string().nullable().optional(),
+  start_date: z.string().nullable().optional(),
+  end_date: z.string().nullable().optional(),
 });
 
 export type FetchOrderListInput = z.infer<typeof fetchOrderListSchema>;
