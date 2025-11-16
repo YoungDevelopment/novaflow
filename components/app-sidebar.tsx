@@ -99,7 +99,7 @@ const data: { navMain: NavSection[] } = {
       title: "Orders",
       url: "/orders",
       allowedRoles: ["owner"], // 👈 only owners see this
-      items: [{ title: "All Orders", url: "/all-orders" }],
+      items: [{ title: "Purchase Orders", url: "/purchase-order" }],
     },
     {
       title: "Vendors",

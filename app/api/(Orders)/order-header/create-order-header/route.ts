@@ -16,6 +16,7 @@ import {
   createOrderHeaderSchema,
   CreateOrderHeaderInput,
 } from "../validators/createOrderHeaderValidator";
+import { recalculateOrderTotalDue } from "@/app/api/utils/amount-calculator";
 
 export async function POST(req: NextRequest) {
   try {
@@ -64,6 +65,13 @@ export async function POST(req: NextRequest) {
         input.entity_id.trim(),
       ]
     );
+
+    // Best-effort recalc immediately after creation
+    try {
+      await recalculateOrderTotalDue(newOrderId);
+    } catch (e) {
+      console.warn("Recalc after order create failed:", e);
+    }
 
     // ✅ Respond with the created order
     return jsonResponse(

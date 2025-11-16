@@ -127,6 +127,82 @@ export default function OrderItemsForm({
     );
   }, [productsList, productSearch]);
 
+  // Helpers: compute amounts from inputs
+  const toNum = (val: string) => {
+    const n = parseFloat(val);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  const computeDeclaredAmount = (unitStr: string, kgStr: string, pricePerUnitStr: string, pricePerKgStr: string) => {
+    const qty = toNum(unitStr);
+    const kg = toNum(kgStr);
+    const ppu = toNum(pricePerUnitStr);
+    const ppk = toNum(pricePerKgStr);
+    return (qty * ppu + kg * ppk).toFixed(2);
+  };
+
+  const computeActualAmount = (unitStr: string, kgStr: string, pricePerUnitStr: string, pricePerKgStr: string) => {
+    const qty = toNum(unitStr);
+    const kg = toNum(kgStr);
+    const ppu = toNum(pricePerUnitStr);
+    const ppk = toNum(pricePerKgStr);
+    return (qty * ppu + kg * ppk).toFixed(2);
+  };
+
+  // Auto-calc amounts for Hardware form
+  useEffect(() => {
+    setHardwareForm((prev) => ({
+      ...prev,
+      declaredAmount: computeDeclaredAmount(
+        prev.unit,
+        prev.kg,
+        prev.declaredPricePerUnit,
+        prev.declaredPricePerKg
+      ),
+      actualAmount: computeActualAmount(
+        prev.unit,
+        prev.kg,
+        prev.actualPricePerUnit,
+        prev.actualPricePerKg
+      ),
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    hardwareForm.unit,
+    hardwareForm.kg,
+    hardwareForm.declaredPricePerUnit,
+    hardwareForm.declaredPricePerKg,
+    hardwareForm.actualPricePerUnit,
+    hardwareForm.actualPricePerKg,
+  ]);
+
+  // Auto-calc amounts for Product form
+  useEffect(() => {
+    setProductForm((prev) => ({
+      ...prev,
+      declaredAmount: computeDeclaredAmount(
+        prev.unit,
+        prev.kg,
+        prev.declaredPricePerUnit,
+        prev.declaredPricePerKg
+      ),
+      actualAmount: computeActualAmount(
+        prev.unit,
+        prev.kg,
+        prev.actualPricePerUnit,
+        prev.actualPricePerKg
+      ),
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    productForm.unit,
+    productForm.kg,
+    productForm.declaredPricePerUnit,
+    productForm.declaredPricePerKg,
+    productForm.actualPricePerUnit,
+    productForm.actualPricePerKg,
+  ]);
+
   const resetHardwareForm = () => {
     setHardwareForm(initialFormState);
     setHardwareSearch("");
@@ -393,11 +469,12 @@ export default function OrderItemsForm({
         />
       </div>
 
-      {/* Prices and Amounts - Two Columns */}
+      {/* Prices and Amounts - Two Columns (Declared left, Actual right) */}
       <div className="grid grid-cols-2 gap-4">
+        {/* Declared Column */}
         <div className="space-y-2">
           <Label htmlFor="hardware-declared-price-unit">
-            Declared Price/Unit
+            Declared Amount per Unit
           </Label>
           <Input
             id="hardware-declared-price-unit"
@@ -412,10 +489,7 @@ export default function OrderItemsForm({
               }))
             }
           />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="hardware-declared-price-kg">Declared Price/KG</Label>
+          <Label htmlFor="hardware-declared-price-kg">Declared Amount per KG</Label>
           <Input
             id="hardware-declared-price-kg"
             type="number"
@@ -429,44 +503,7 @@ export default function OrderItemsForm({
               }))
             }
           />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="hardware-actual-price-unit">Actual Price/Unit</Label>
-          <Input
-            id="hardware-actual-price-unit"
-            type="number"
-            step="0.01"
-            placeholder="0.00"
-            value={hardwareForm.actualPricePerUnit}
-            onChange={(e) =>
-              setHardwareForm((prev) => ({
-                ...prev,
-                actualPricePerUnit: e.target.value,
-              }))
-            }
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="hardware-actual-price-kg">Actual Price/KG</Label>
-          <Input
-            id="hardware-actual-price-kg"
-            type="number"
-            step="0.01"
-            placeholder="0.00"
-            value={hardwareForm.actualPricePerKg}
-            onChange={(e) =>
-              setHardwareForm((prev) => ({
-                ...prev,
-                actualPricePerKg: e.target.value,
-              }))
-            }
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="hardware-declared-amount">Declared Amount</Label>
+          <Label htmlFor="hardware-declared-amount">Total Declared Amount</Label>
           <Input
             id="hardware-declared-amount"
             type="number"
@@ -481,9 +518,37 @@ export default function OrderItemsForm({
             }
           />
         </div>
-
+        {/* Actual Column */}
         <div className="space-y-2">
-          <Label htmlFor="hardware-actual-amount">Actual Amount</Label>
+          <Label htmlFor="hardware-actual-price-unit">Actual Amount per Unit</Label>
+          <Input
+            id="hardware-actual-price-unit"
+            type="number"
+            step="0.01"
+            placeholder="0.00"
+            value={hardwareForm.actualPricePerUnit}
+            onChange={(e) =>
+              setHardwareForm((prev) => ({
+                ...prev,
+                actualPricePerUnit: e.target.value,
+              }))
+            }
+          />
+          <Label htmlFor="hardware-actual-price-kg">Actual Amount per KG</Label>
+          <Input
+            id="hardware-actual-price-kg"
+            type="number"
+            step="0.01"
+            placeholder="0.00"
+            value={hardwareForm.actualPricePerKg}
+            onChange={(e) =>
+              setHardwareForm((prev) => ({
+                ...prev,
+                actualPricePerKg: e.target.value,
+              }))
+            }
+          />
+          <Label htmlFor="hardware-actual-amount">Total Actual Amount</Label>
           <Input
             id="hardware-actual-amount"
             type="number"
@@ -682,11 +747,12 @@ export default function OrderItemsForm({
         />
       </div>
 
-      {/* Prices and Amounts - Two Columns */}
+      {/* Prices and Amounts - Two Columns (Declared left, Actual right) */}
       <div className="grid grid-cols-2 gap-4">
+        {/* Declared Column */}
         <div className="space-y-2">
           <Label htmlFor="product-declared-price-unit">
-            Declared Price/Unit
+            Declared Amount per Unit
           </Label>
           <Input
             id="product-declared-price-unit"
@@ -701,10 +767,7 @@ export default function OrderItemsForm({
               }))
             }
           />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="product-declared-price-kg">Declared Price/KG</Label>
+          <Label htmlFor="product-declared-price-kg">Declared Amount per KG</Label>
           <Input
             id="product-declared-price-kg"
             type="number"
@@ -718,44 +781,7 @@ export default function OrderItemsForm({
               }))
             }
           />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="product-actual-price-unit">Actual Price/Unit</Label>
-          <Input
-            id="product-actual-price-unit"
-            type="number"
-            step="0.01"
-            placeholder="0.00"
-            value={productForm.actualPricePerUnit}
-            onChange={(e) =>
-              setProductForm((prev) => ({
-                ...prev,
-                actualPricePerUnit: e.target.value,
-              }))
-            }
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="product-actual-price-kg">Actual Price/KG</Label>
-          <Input
-            id="product-actual-price-kg"
-            type="number"
-            step="0.01"
-            placeholder="0.00"
-            value={productForm.actualPricePerKg}
-            onChange={(e) =>
-              setProductForm((prev) => ({
-                ...prev,
-                actualPricePerKg: e.target.value,
-              }))
-            }
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="product-declared-amount">Declared Amount</Label>
+          <Label htmlFor="product-declared-amount">Total Declared Amount</Label>
           <Input
             id="product-declared-amount"
             type="number"
@@ -770,9 +796,37 @@ export default function OrderItemsForm({
             }
           />
         </div>
-
+        {/* Actual Column */}
         <div className="space-y-2">
-          <Label htmlFor="product-actual-amount">Actual Amount</Label>
+          <Label htmlFor="product-actual-price-unit">Actual Amount per Unit</Label>
+          <Input
+            id="product-actual-price-unit"
+            type="number"
+            step="0.01"
+            placeholder="0.00"
+            value={productForm.actualPricePerUnit}
+            onChange={(e) =>
+              setProductForm((prev) => ({
+                ...prev,
+                actualPricePerUnit: e.target.value,
+              }))
+            }
+          />
+          <Label htmlFor="product-actual-price-kg">Actual Amount per KG</Label>
+          <Input
+            id="product-actual-price-kg"
+            type="number"
+            step="0.01"
+            placeholder="0.00"
+            value={productForm.actualPricePerKg}
+            onChange={(e) =>
+              setProductForm((prev) => ({
+                ...prev,
+                actualPricePerKg: e.target.value,
+              }))
+            }
+          />
+          <Label htmlFor="product-actual-amount">Total Actual Amount</Label>
           <Input
             id="product-actual-amount"
             type="number"

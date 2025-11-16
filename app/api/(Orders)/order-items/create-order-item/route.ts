@@ -16,6 +16,7 @@ import {
   createOrderItemSchema,
   CreateOrderItemInput,
 } from "../validators/createOrderItemValidator";
+import { recalculateOrderTotalDue } from "@/app/api/utils/amount-calculator";
 
 export async function POST(req: NextRequest) {
   try {
@@ -97,6 +98,13 @@ export async function POST(req: NextRequest) {
         input.actual_amount ?? 0.0,
       ]
     );
+
+    // Best-effort recalc for this order
+    try {
+      await recalculateOrderTotalDue(input.order_id);
+    } catch (e) {
+      console.warn("Recalc after order item create failed:", e);
+    }
 
     return jsonResponse({ message: "Order item created successfully" }, 200);
   } catch (err: any) {

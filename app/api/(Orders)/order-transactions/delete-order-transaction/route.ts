@@ -14,6 +14,7 @@ import {
   deleteOrderTransactionSchema,
   DeleteOrderTransactionInput,
 } from "../validators/deleteOrderTransactionValidator";
+import { recalculateOrderTotalDue } from "@/app/api/utils/amount-calculator";
 
 export async function DELETE(req: NextRequest) {
   try {
@@ -43,7 +44,7 @@ export async function DELETE(req: NextRequest) {
 
     // ✅ Check if order transaction exists
     const transactionCheck = await turso.execute(
-      `SELECT Order_Transcation_ID FROM Order_Transactions WHERE Order_Transcation_ID = ?`,
+      `SELECT Order_Transcation_ID, Order_ID FROM Order_Transactions WHERE Order_Transcation_ID = ?`,
       [input.Order_Transcation_ID]
     );
 
@@ -62,6 +63,16 @@ export async function DELETE(req: NextRequest) {
       `DELETE FROM Order_Transactions WHERE Order_Transcation_ID = ?`,
       [input.Order_Transcation_ID]
     );
+
+    // Best-effort recalc
+    const targetOrderId = (transactionCheck.rows?.[0] as any)?.Order_ID || "";
+    if (targetOrderId) {
+      try {
+        await recalculateOrderTotalDue(targetOrderId);
+      } catch (e) {
+        console.warn("Recalc after transaction delete failed:", e);
+      }
+    }
 
     return jsonResponse(
       { message: "Order transaction deleted successfully" },

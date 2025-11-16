@@ -5,6 +5,8 @@ import OrderConfig from "../components/order-config";
 import OrderDetails from "../components/order-header";
 import OrderNote from "../components/order-note";
 import { OrderItemsTable } from "../components/order-items-table";
+import { OrderTransactionsTable } from "../components/order-transactions-table";
+import { OrderChargesTable } from "../components/order-charges-table";
 
 interface PurchaseOrderFormClientProps {
   searchParams: {
@@ -40,7 +42,11 @@ export default function PurchaseOrderFormClient({
       {effectiveOrderId && (
         <>
           <OrderConfig orderId={effectiveOrderId} orderType={orderType} />
+          <br />
           <OrderItemsTable orderId={effectiveOrderId} />
+          <OrderTransactionsTable orderId={effectiveOrderId} />
+          <OrderChargesTable orderId={effectiveOrderId} />
+          <br />
           <OrderNote orderId={effectiveOrderId} orderType={orderType} />
         </>
       )}

@@ -10,3 +10,5 @@ export * from "./endpoints/orderNotes";
 export * from "./endpoints/orderHeader";
 export * from "./endpoints/orderConfig";
 export * from "./endpoints/orderItems";
+export * from "./endpoints/orderTransactions";
+export * from "./endpoints/orderCharges";

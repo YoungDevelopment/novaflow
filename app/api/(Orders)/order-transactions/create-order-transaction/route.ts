@@ -16,6 +16,7 @@ import {
   createOrderTransactionSchema,
   CreateOrderTransactionInput,
 } from "../validators/createOrderTransactionValidator";
+import { recalculateOrderTotalDue } from "@/app/api/utils/amount-calculator";
 
 export async function POST(req: NextRequest) {
   try {
@@ -85,6 +86,13 @@ export async function POST(req: NextRequest) {
         input.Notes || null,
       ]
     );
+
+    // Best-effort recalc
+    try {
+      await recalculateOrderTotalDue(input.Order_ID);
+    } catch (e) {
+      console.warn("Recalc after transaction create failed:", e);
+    }
 
     return jsonResponse(
       { message: "Order transaction created successfully" },

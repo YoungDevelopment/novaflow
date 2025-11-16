@@ -15,6 +15,7 @@ import {
   updateOrderItemSchema,
   UpdateOrderItemInput,
 } from "../validators/updateOrderItemValidator";
+import { recalculateOrderTotalDue } from "@/app/api/utils/amount-calculator";
 
 export async function PATCH(req: NextRequest) {
   try {
@@ -92,6 +93,17 @@ export async function PATCH(req: NextRequest) {
       values
     );
 
+    // Determine order_id for recalc (prefer input.order_id, fallback to existing row)
+    const targetOrderId =
+      input.order_id || (existing.rows?.[0] as any)?.order_id || "";
+    if (targetOrderId) {
+      try {
+        await recalculateOrderTotalDue(targetOrderId);
+      } catch (e) {
+        console.warn("Recalc after order item update failed:", e);
+      }
+    }
+
     return jsonResponse({ message: "Order item updated successfully" }, 200);
   } catch (err: any) {
     console.error("Order Item Update Error:", err);
@@ -101,4 +113,3 @@ export async function PATCH(req: NextRequest) {
     );
   }
 }
-

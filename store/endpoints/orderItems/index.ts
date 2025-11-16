@@ -41,7 +41,10 @@ export const orderItemsApi = baseApi.injectEndpoints({
         method: "POST",
         body: orderItem,
       }),
-      invalidatesTags: ["OrderItems"],
+      invalidatesTags: (result, error, arg) => [
+        "OrderItems",
+        { type: "OrderHeader", id: (arg as CreateOrderItemRequest).order_id },
+      ],
     }),
 
     // Update order item
@@ -54,7 +57,10 @@ export const orderItemsApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: orderItem,
       }),
-      invalidatesTags: ["OrderItems"],
+      invalidatesTags: (result, error, arg) => [
+        "OrderItems",
+        ...(arg.order_id ? [{ type: "OrderHeader", id: arg.order_id } as const] : []),
+      ],
     }),
 
     // Delete order item
@@ -67,7 +73,8 @@ export const orderItemsApi = baseApi.injectEndpoints({
         method: "DELETE",
         body: orderItem,
       }),
-      invalidatesTags: ["OrderItems"],
+      // We don't have order_id in the delete request; invalidate all OrderHeader to be safe
+      invalidatesTags: ["OrderItems", "OrderHeader"],
     }),
   }),
 });

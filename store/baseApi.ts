@@ -19,6 +19,8 @@ export const baseApi = createApi({
     "OrderHeader",
     "OrderConfig",
     "OrderItems",
+    "OrderTransactions",
+    "OrderCharges",
     "PurchaseOrder",
   ],
   endpoints: () => ({}), // Empty endpoints object - will be injected

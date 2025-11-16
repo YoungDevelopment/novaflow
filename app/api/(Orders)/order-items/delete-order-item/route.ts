@@ -14,6 +14,7 @@ import {
   deleteOrderItemSchema,
   DeleteOrderItemInput,
 } from "../validators/deleteOrderItemValidator";
+import { recalculateOrderTotalDue } from "@/app/api/utils/amount-calculator";
 
 export async function DELETE(req: NextRequest) {
   try {
@@ -43,7 +44,7 @@ export async function DELETE(req: NextRequest) {
 
     // ✅ Check if order item exists
     const itemCheck = await turso.execute(
-      `SELECT order_item_id FROM Order_Items WHERE order_item_id = ?`,
+      `SELECT order_item_id, order_id FROM Order_Items WHERE order_item_id = ?`,
       [input.order_item_id]
     );
 
@@ -61,6 +62,16 @@ export async function DELETE(req: NextRequest) {
     await turso.execute(`DELETE FROM Order_Items WHERE order_item_id = ?`, [
       input.order_item_id,
     ]);
+
+    // Best-effort recalc for this order
+    const targetOrderId = (itemCheck.rows?.[0] as any)?.order_id || "";
+    if (targetOrderId) {
+      try {
+        await recalculateOrderTotalDue(targetOrderId);
+      } catch (e) {
+        console.warn("Recalc after order item delete failed:", e);
+      }
+    }
 
     return jsonResponse({ message: "Order item deleted successfully" }, 200);
   } catch (error: any) {

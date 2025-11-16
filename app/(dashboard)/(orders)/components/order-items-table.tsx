@@ -211,6 +211,9 @@ export function OrderItemsTable({ orderId }: OrderItemsTableProps) {
     }),
   ];
 
+  // Show pagination only when total entries > 5
+  const showPagination = pagination.total > 5;
+
   const config = {
     columns,
     actions,
@@ -219,7 +222,7 @@ export function OrderItemsTable({ orderId }: OrderItemsTableProps) {
     backendSearch: true,
     onSearchChange: handleSearchChange,
     pagination: {
-      enabled: true,
+      enabled: showPagination,
       pageSize: recordsPerPage,
       pageSizeOptions: [5, 10, 15, 20, 30, 40, 50],
     },
@@ -228,14 +231,16 @@ export function OrderItemsTable({ orderId }: OrderItemsTableProps) {
     noResultsMessage: "No order items found matching your search.",
   };
 
-  const externalPagination = {
-    currentPage,
-    totalPages: pagination.totalPages,
-    totalItems: pagination.total,
-    pageSize: recordsPerPage,
-    onPageChange: setCurrentPage,
-    onPageSizeChange: handleRecordsPerPageChange,
-  };
+  const externalPagination = showPagination
+    ? {
+        currentPage,
+        totalPages: pagination.totalPages,
+        totalItems: pagination.total,
+        pageSize: recordsPerPage,
+        onPageChange: setCurrentPage,
+        onPageSizeChange: handleRecordsPerPageChange,
+      }
+    : undefined;
 
   const footerActions = (
     <Button className="gap-2" onClick={handleCreateOrderItem}>
