@@ -16,6 +16,7 @@ import { turso } from "@/lib/turso";
 import { generateCustomId } from "../../../utils/id-generator";
 import { jsonResponse, errorResponse } from "@/app/api/utils/response";
 import { upsertOrderConfigSchema, UpsertOrderConfigInput } from "../validators";
+import { recalculateOrderTotalDue } from "@/app/api/utils/amount-calculator";
 
 async function upsertHandler(req: NextRequest) {
   try {
@@ -115,6 +116,15 @@ async function upsertHandler(req: NextRequest) {
 
       await turso.execute(updateSql, updateValues);
 
+      // ✅ Recalculate order total_due whenever any order config field is changed
+      // This ensures the order amount stays in sync with tax percentage and other changes
+      recalculateOrderTotalDue(input.order_id).catch((err) => {
+        console.error(
+          `Failed to recalculate total_due for order ${input.order_id}:`,
+          err
+        );
+      });
+
       // ✅ Fetch the updated order_config row
       const fetchSql = `
         SELECT 
@@ -171,6 +181,15 @@ async function upsertHandler(req: NextRequest) {
           input.gate_pass || null,
         ]
       );
+
+      // ✅ Recalculate order total_due whenever order config is created
+      // This ensures the order amount stays in sync with tax percentage and other changes
+      recalculateOrderTotalDue(input.order_id).catch((err) => {
+        console.error(
+          `Failed to recalculate total_due for order ${input.order_id}:`,
+          err
+        );
+      });
 
       // ✅ Fetch the created order_config row
       const fetchSql = `

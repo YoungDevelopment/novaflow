@@ -43,8 +43,16 @@ export default function OrderDetails({
   const vendors = vendorsData?.data || [];
 
   // Fetch order data if orderId is provided
+  // refetchOnMountOrArgChange and refetchOnFocus ensure it refetches when cache is invalidated
   const { data: orderDataResponse, isLoading: orderLoading } =
-    useFetchOrderHeaderByIdQuery({ order_id: orderId! }, { skip: !orderId });
+    useFetchOrderHeaderByIdQuery(
+      { order_id: orderId! },
+      {
+        skip: !orderId,
+        refetchOnMountOrArgChange: true,
+        refetchOnFocus: true,
+      }
+    );
 
   const orderData = orderDataResponse?.data || createdOrderData;
 

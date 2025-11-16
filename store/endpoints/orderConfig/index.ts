@@ -29,7 +29,12 @@ export const orderConfigApi = baseApi.injectEndpoints({
         body: orderConfig,
       }),
       invalidatesTags: (result, error, { order_id }) =>
-        result ? [{ type: "OrderConfig", id: order_id }] : [],
+        result
+          ? [
+              { type: "OrderConfig", id: order_id },
+              { type: "OrderHeader", id: order_id },
+            ]
+          : [],
     }),
     // Update order config (PATCH - partial update)
     patchOrderConfig: builder.mutation<OrderConfig, UpsertOrderConfigRequest>({
@@ -39,7 +44,12 @@ export const orderConfigApi = baseApi.injectEndpoints({
         body: orderConfig,
       }),
       invalidatesTags: (result, error, { order_id }) =>
-        result ? [{ type: "OrderConfig", id: order_id }] : [],
+        result
+          ? [
+              { type: "OrderConfig", id: order_id },
+              { type: "OrderHeader", id: order_id },
+            ]
+          : [],
     }),
   }),
 });
