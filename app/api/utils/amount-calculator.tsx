@@ -60,10 +60,7 @@ export async function recalculateOrderTotalDue(
       SELECT COALESCE(SUM(Actual_Amount), 0) AS total
       FROM Order_Transactions
       WHERE Order_ID = ?
-        AND (
-          LOWER(COALESCE(Type, '')) = 'payment'
-          OR LOWER(COALESCE(Order_Payment_Type, '')) IN ('paid', 'payment')
-        )
+       
     `,
     [orderId]
   );

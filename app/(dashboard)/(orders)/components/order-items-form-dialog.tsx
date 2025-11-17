@@ -106,29 +106,38 @@ export function OrderItemForm({
       actual: false,
     });
 
-  // Helper function to calculate amounts (based on Unit only, not KG)
-  const calculateAmount = (pricePerUnit: string, unit: string): string => {
-    // If either field is empty, return empty string to show placeholder
-    if (!pricePerUnit.trim() || !unit.trim()) {
-      return "";
-    }
+  // Helper function to calculate amounts (based on Unit and KG)
+  const calculateAmount = (
+    pricePerUnit: string,
+    unit: string,
+    pricePerKg: string,
+    kg: string
+  ): string => {
+    const toNum = (val: string) => {
+      const n = parseFloat(val);
+      return Number.isFinite(n) ? n : 0;
+    };
 
-    const priceUnit = parseFloat(pricePerUnit) || 0;
-    const unitValue = parseFloat(unit) || 0;
+    const qty = toNum(unit);
+    const kgValue = toNum(kg);
+    const ppu = toNum(pricePerUnit);
+    const ppk = toNum(pricePerKg);
 
-    const result = priceUnit * unitValue;
+    const result = qty * ppu + kgValue * ppk;
     // Return empty string if result is 0, otherwise return formatted value
     return result === 0 ? "" : result.toFixed(2);
   };
 
-  // Auto-calculate hardware amounts (based on Unit only)
+  // Auto-calculate hardware amounts (based on Unit and KG)
   useEffect(() => {
     if (hardwareAmountsManuallyEdited.declared) {
       return; // Don't auto-calculate if manually edited
     }
     const calculated = calculateAmount(
       hardwareForm.declaredPricePerUnit,
-      hardwareForm.unit
+      hardwareForm.unit,
+      hardwareForm.declaredPricePerKg,
+      hardwareForm.kg
     );
     setHardwareForm((prev) => ({
       ...prev,
@@ -136,7 +145,9 @@ export function OrderItemForm({
     }));
   }, [
     hardwareForm.declaredPricePerUnit,
+    hardwareForm.declaredPricePerKg,
     hardwareForm.unit,
+    hardwareForm.kg,
     hardwareAmountsManuallyEdited.declared,
   ]);
 
@@ -146,7 +157,9 @@ export function OrderItemForm({
     }
     const calculated = calculateAmount(
       hardwareForm.actualPricePerUnit,
-      hardwareForm.unit
+      hardwareForm.unit,
+      hardwareForm.actualPricePerKg,
+      hardwareForm.kg
     );
     setHardwareForm((prev) => ({
       ...prev,
@@ -154,18 +167,22 @@ export function OrderItemForm({
     }));
   }, [
     hardwareForm.actualPricePerUnit,
+    hardwareForm.actualPricePerKg,
     hardwareForm.unit,
+    hardwareForm.kg,
     hardwareAmountsManuallyEdited.actual,
   ]);
 
-  // Auto-calculate product amounts (based on Unit only)
+  // Auto-calculate product amounts (based on Unit and KG)
   useEffect(() => {
     if (productAmountsManuallyEdited.declared) {
       return; // Don't auto-calculate if manually edited
     }
     const calculated = calculateAmount(
       productForm.declaredPricePerUnit,
-      productForm.unit
+      productForm.unit,
+      productForm.declaredPricePerKg,
+      productForm.kg
     );
     setProductForm((prev) => ({
       ...prev,
@@ -173,7 +190,9 @@ export function OrderItemForm({
     }));
   }, [
     productForm.declaredPricePerUnit,
+    productForm.declaredPricePerKg,
     productForm.unit,
+    productForm.kg,
     productAmountsManuallyEdited.declared,
   ]);
 
@@ -183,7 +202,9 @@ export function OrderItemForm({
     }
     const calculated = calculateAmount(
       productForm.actualPricePerUnit,
-      productForm.unit
+      productForm.unit,
+      productForm.actualPricePerKg,
+      productForm.kg
     );
     setProductForm((prev) => ({
       ...prev,
@@ -191,7 +212,9 @@ export function OrderItemForm({
     }));
   }, [
     productForm.actualPricePerUnit,
+    productForm.actualPricePerKg,
     productForm.unit,
+    productForm.kg,
     productAmountsManuallyEdited.actual,
   ]);
 
@@ -308,9 +331,10 @@ export function OrderItemForm({
         movement: orderItem.movement === "Y",
       };
 
-      // When updating, mark amounts as manually edited to preserve existing values
-      setHardwareAmountsManuallyEdited({ declared: true, actual: true });
-      setProductAmountsManuallyEdited({ declared: true, actual: true });
+      // Reset manual edit flags when initializing - amounts should auto-calculate
+      // They will be marked as manually edited only if user directly edits amount fields
+      setHardwareAmountsManuallyEdited({ declared: false, actual: false });
+      setProductAmountsManuallyEdited({ declared: false, actual: false });
 
       if (orderItem.item_type === "Hardware") {
         setActiveTab("hardware");
