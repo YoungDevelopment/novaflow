@@ -3,12 +3,22 @@
 import * as React from "react";
 import { Edit, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DataTable, createAction, createColumn } from "@/components/ui/data-table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  DataTable,
+  createAction,
+  createColumn,
+} from "@/components/ui/data-table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useFetchOrderChargesQuery } from "@/store";
 import type { OrderCharge } from "@/store/endpoints/orderCharges/type";
 import OrderChargesForm from "./order-charges-form";
 import { DeleteOrderChargeForm } from "./delete-order-charge-form";
+import { CompactLoader } from "@/app/(dashboard)/components";
 
 interface OrderChargesTableProps {
   orderId: string;
@@ -18,9 +28,11 @@ export function OrderChargesTable({ orderId }: OrderChargesTableProps) {
   const [currentPage, setCurrentPage] = React.useState<number>(1);
   const [recordsPerPage, setRecordsPerPage] = React.useState<number>(10);
   const [showForm, setShowForm] = React.useState(false);
-  const [selectedCharge, setSelectedCharge] = React.useState<OrderCharge | null>(null);
+  const [selectedCharge, setSelectedCharge] =
+    React.useState<OrderCharge | null>(null);
   const [showDeleteForm, setShowDeleteForm] = React.useState(false);
-  const [chargeToDelete, setChargeToDelete] = React.useState<OrderCharge | null>(null);
+  const [chargeToDelete, setChargeToDelete] =
+    React.useState<OrderCharge | null>(null);
 
   // Since API fetch-all has no filtering, fetch a large set and filter client-side by orderId
   const { data: apiData, isLoading } = useFetchOrderChargesQuery({
@@ -125,29 +137,46 @@ export function OrderChargesTable({ orderId }: OrderChargesTableProps) {
 
   return (
     <div className="w-full mt-6 space-y-4">
-      <DataTable
-        data={pagedData}
-        config={config}
-        externalPagination={
-          showPagination
-            ? {
-                currentPage,
-                totalPages: pagination.totalPages,
-                totalItems: pagination.total,
-                pageSize: recordsPerPage,
-                onPageChange: setCurrentPage,
-                onPageSizeChange: handleRecordsPerPageChange,
-              }
-            : undefined
-        }
-        footerActions={footerActions}
-      />
+      <div className="relative">
+        <DataTable
+          data={pagedData}
+          config={config}
+          externalPagination={
+            showPagination
+              ? {
+                  currentPage,
+                  totalPages: pagination.totalPages,
+                  totalItems: pagination.total,
+                  pageSize: recordsPerPage,
+                  onPageChange: setCurrentPage,
+                  onPageSizeChange: handleRecordsPerPageChange,
+                }
+              : undefined
+          }
+          footerActions={footerActions}
+        />
+
+        {/* Loading overlay for all API calls */}
+        {isLoading && (
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10">
+            <div className="flex items-center gap-2">
+              <CompactLoader />
+              <span className="text-sm">Loading order charges...</span>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Create/Update Form Dialog */}
-      <Dialog open={showForm} onOpenChange={(open) => !open && setShowForm(false)}>
+      <Dialog
+        open={showForm}
+        onOpenChange={(open) => !open && setShowForm(false)}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{selectedCharge ? "Update Charge" : "Add Charge"}</DialogTitle>
+            <DialogTitle>
+              {selectedCharge ? "Update Charge" : "Add Charge"}
+            </DialogTitle>
           </DialogHeader>
           <OrderChargesForm
             orderId={orderId}
@@ -169,5 +198,3 @@ export function OrderChargesTable({ orderId }: OrderChargesTableProps) {
     </div>
   );
 }
-
-

@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LoaderThree } from "@/components/ui/loader";
+import { CompactLoader } from "@/app/(dashboard)/components";
 import {
   useFetchOrderHeaderByIdQuery,
   useCreateOrderHeaderMutation,
@@ -102,16 +102,17 @@ export default function OrderDetails({
   const isCreateButtonDisabled = !selectedVendor || !user?.username || creating;
   const loading = orderLoading || vendorsLoading;
 
-  if (loading && orderId) {
-    return (
-      <div className="w-full p-8 bg-white flex justify-center items-center">
-        <LoaderThree />
-      </div>
-    );
-  }
-
   return (
-    <div className="w-full  bg-white">
+    <div className="w-full bg-white relative">
+      {/* Loading overlay for all API calls */}
+      {loading && orderId && (
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10">
+          <div className="flex items-center gap-2">
+            <CompactLoader />
+            <span className="text-sm">Loading order details...</span>
+          </div>
+        </div>
+      )}
       {/* Main Content Container */}
       <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4 lg:gap-8">
         {/* Left Column */}

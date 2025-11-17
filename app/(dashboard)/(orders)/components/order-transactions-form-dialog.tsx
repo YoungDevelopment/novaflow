@@ -36,6 +36,7 @@ import type { OrderTransaction } from "@/store/endpoints/orderTransactions/type"
 interface OrderTransactionFormProps {
   orderId: string;
   transaction?: OrderTransaction | null;
+  orderType?: string;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -61,10 +62,12 @@ const initialFormState: FormState = {
 };
 
 const PAYMENT_TYPES = ["GST", "Cash"];
+const PAYMENT_METHODS = ["Bank Transfer", "Cheque", "In Hand"];
 
 export function OrderTransactionForm({
   orderId,
   transaction,
+  orderType = "Purchase",
   onClose,
   onSuccess,
 }: OrderTransactionFormProps) {
@@ -73,7 +76,20 @@ export function OrderTransactionForm({
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [isPaymentTypeDropdownOpen, setIsPaymentTypeDropdownOpen] =
     useState(false);
+  const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
+  const [isPaymentMethodDropdownOpen, setIsPaymentMethodDropdownOpen] =
+    useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Get Type options based on orderType
+  const getTypeOptions = () => {
+    if (orderType === "Purchase") {
+      return ["Purchase"];
+    }
+    return ["Purchase"]; // Default for now
+  };
+
+  const typeOptions = getTypeOptions();
 
   const [createTransaction] = useCreateOrderTransactionMutation();
   const [updateTransaction] = useUpdateOrderTransactionMutation();
@@ -218,18 +234,42 @@ export function OrderTransactionForm({
             </Popover>
           </div>
 
-          {/* Type */}
+          {/* Type Dropdown */}
           <div className="space-y-2">
             <Label htmlFor="type">Type</Label>
-            <Input
-              id="type"
-              type="text"
-              placeholder="Enter type"
-              value={formState.Type}
-              onChange={(e) =>
-                setFormState((prev) => ({ ...prev, Type: e.target.value }))
-              }
-            />
+            <DropdownMenu
+              open={isTypeDropdownOpen}
+              onOpenChange={setIsTypeDropdownOpen}
+            >
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-between bg-transparent"
+                >
+                  {formState.Type || "Select Type"}
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-full">
+                {typeOptions.map((type) => (
+                  <DropdownMenuItem
+                    key={type}
+                    onClick={() => {
+                      setFormState((prev) => ({
+                        ...prev,
+                        Type: type,
+                      }));
+                      setIsTypeDropdownOpen(false);
+                    }}
+                    className={
+                      formState.Type === type ? "bg-accent" : ""
+                    }
+                  >
+                    {type}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Payment Type Dropdown */}
@@ -270,21 +310,42 @@ export function OrderTransactionForm({
             </DropdownMenu>
           </div>
 
-          {/* Payment Method */}
+          {/* Payment Method Dropdown */}
           <div className="space-y-2">
             <Label htmlFor="payment-method">Payment Method</Label>
-            <Input
-              id="payment-method"
-              type="text"
-              placeholder="Enter payment method"
-              value={formState.Payment_Method}
-              onChange={(e) =>
-                setFormState((prev) => ({
-                  ...prev,
-                  Payment_Method: e.target.value,
-                }))
-              }
-            />
+            <DropdownMenu
+              open={isPaymentMethodDropdownOpen}
+              onOpenChange={setIsPaymentMethodDropdownOpen}
+            >
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-between bg-transparent"
+                >
+                  {formState.Payment_Method || "Select Payment Method"}
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-full">
+                {PAYMENT_METHODS.map((method) => (
+                  <DropdownMenuItem
+                    key={method}
+                    onClick={() => {
+                      setFormState((prev) => ({
+                        ...prev,
+                        Payment_Method: method,
+                      }));
+                      setIsPaymentMethodDropdownOpen(false);
+                    }}
+                    className={
+                      formState.Payment_Method === method ? "bg-accent" : ""
+                    }
+                  >
+                    {method}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Amounts - Two Columns */}

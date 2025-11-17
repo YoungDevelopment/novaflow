@@ -16,10 +16,12 @@ import { CompactLoader } from "@/app/(dashboard)/components";
 
 interface OrderTransactionsTableProps {
   orderId: string;
+  orderType?: string;
 }
 
 export function OrderTransactionsTable({
   orderId,
+  orderType = "Purchase",
 }: OrderTransactionsTableProps) {
   const [currentPage, setCurrentPage] = React.useState<number>(1);
   const [recordsPerPage, setRecordsPerPage] = React.useState<number>(10);
@@ -208,6 +210,7 @@ export function OrderTransactionsTable({
         <OrderTransactionForm
           orderId={orderId}
           transaction={selectedTransaction}
+          orderType={orderType}
           onClose={() => {
             setShowTransactionForm(false);
             setSelectedTransaction(null);

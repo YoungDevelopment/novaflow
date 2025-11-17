@@ -12,7 +12,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useFetchOrderConfigQuery, usePatchOrderConfigMutation } from "@/store";
-import { LoaderThree } from "@/components/ui/loader";
+import { CompactLoader } from "@/app/(dashboard)/components";
 import { toast } from "sonner";
 // unified debounce across all fields; per-field debounce removed
 
@@ -206,17 +206,9 @@ const OrderConfig: React.FC<OrderConfigProps> = ({ orderId, orderType }) => {
     setTaxPercentage(formattedValue);
   };
 
-  if (isLoading) {
-    return (
-      <div className="w-full bg-white flex justify-center items-center">
-        <LoaderThree />
-      </div>
-    );
-  }
-
   if (isError) {
     return (
-      <div className="w-full  bg-white">
+      <div className="w-full bg-white">
         <p className="text-red-600">
           Error loading order config:{" "}
           {(error as any)?.data?.message || "Unknown error"}
@@ -226,7 +218,16 @@ const OrderConfig: React.FC<OrderConfigProps> = ({ orderId, orderType }) => {
   }
 
   return (
-    <div className="w-full bg-white ">
+    <div className="w-full bg-white relative">
+      {/* Loading overlay for all API calls */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10">
+          <div className="flex items-center gap-2">
+            <CompactLoader />
+            <span className="text-sm">Loading order config...</span>
+          </div>
+        </div>
+      )}
       <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
         {/* Gate Pass Field */}
         <div className="flex-1">

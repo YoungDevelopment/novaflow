@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useFetchOrderNoteQuery, useUpdateOrderNoteMutation } from "@/store";
-import { LoaderThree } from "@/components/ui/loader";
+import { CompactLoader } from "@/app/(dashboard)/components";
 
 interface OrderNoteProps {
   orderId: string;
@@ -83,14 +83,6 @@ const OrderNote: React.FC<OrderNoteProps> = ({ orderId }) => {
     };
   }, [note, scheduleSave]);
 
-  if (isLoading) {
-    return (
-      <div className="w-full bg-white flex justify-center items-center">
-        <LoaderThree />
-      </div>
-    );
-  }
-
   if (isError) {
     return (
       <div className="w-full bg-white">
@@ -103,7 +95,16 @@ const OrderNote: React.FC<OrderNoteProps> = ({ orderId }) => {
   }
 
   return (
-    <div className="w-full pt-4 bg-white ">
+    <div className="w-full pt-4 bg-white relative">
+      {/* Loading overlay for all API calls */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10">
+          <div className="flex items-center gap-2">
+            <CompactLoader />
+            <span className="text-sm">Loading order note...</span>
+          </div>
+        </div>
+      )}
       <div className="flex flex-col gap-2">
         <Label htmlFor="order-note" className="mb-1 block">
           Notes

@@ -106,38 +106,29 @@ export function OrderItemForm({
       actual: false,
     });
 
-  // Helper function to calculate amounts (based on Unit and KG)
-  const calculateAmount = (
-    pricePerUnit: string,
-    unit: string,
-    pricePerKg: string,
-    kg: string
-  ): string => {
+  // Helper function to calculate amounts (based on Unit only)
+  const calculateAmount = (pricePerUnit: string, unit: string): string => {
     const toNum = (val: string) => {
       const n = parseFloat(val);
       return Number.isFinite(n) ? n : 0;
     };
 
     const qty = toNum(unit);
-    const kgValue = toNum(kg);
     const ppu = toNum(pricePerUnit);
-    const ppk = toNum(pricePerKg);
 
-    const result = qty * ppu + kgValue * ppk;
+    const result = qty * ppu;
     // Return empty string if result is 0, otherwise return formatted value
     return result === 0 ? "" : result.toFixed(2);
   };
 
-  // Auto-calculate hardware amounts (based on Unit and KG)
+  // Auto-calculate hardware amounts (based on Unit only)
   useEffect(() => {
     if (hardwareAmountsManuallyEdited.declared) {
       return; // Don't auto-calculate if manually edited
     }
     const calculated = calculateAmount(
       hardwareForm.declaredPricePerUnit,
-      hardwareForm.unit,
-      hardwareForm.declaredPricePerKg,
-      hardwareForm.kg
+      hardwareForm.unit
     );
     setHardwareForm((prev) => ({
       ...prev,
@@ -145,9 +136,7 @@ export function OrderItemForm({
     }));
   }, [
     hardwareForm.declaredPricePerUnit,
-    hardwareForm.declaredPricePerKg,
     hardwareForm.unit,
-    hardwareForm.kg,
     hardwareAmountsManuallyEdited.declared,
   ]);
 
@@ -157,9 +146,7 @@ export function OrderItemForm({
     }
     const calculated = calculateAmount(
       hardwareForm.actualPricePerUnit,
-      hardwareForm.unit,
-      hardwareForm.actualPricePerKg,
-      hardwareForm.kg
+      hardwareForm.unit
     );
     setHardwareForm((prev) => ({
       ...prev,
@@ -167,22 +154,18 @@ export function OrderItemForm({
     }));
   }, [
     hardwareForm.actualPricePerUnit,
-    hardwareForm.actualPricePerKg,
     hardwareForm.unit,
-    hardwareForm.kg,
     hardwareAmountsManuallyEdited.actual,
   ]);
 
-  // Auto-calculate product amounts (based on Unit and KG)
+  // Auto-calculate product amounts (based on Unit only)
   useEffect(() => {
     if (productAmountsManuallyEdited.declared) {
       return; // Don't auto-calculate if manually edited
     }
     const calculated = calculateAmount(
       productForm.declaredPricePerUnit,
-      productForm.unit,
-      productForm.declaredPricePerKg,
-      productForm.kg
+      productForm.unit
     );
     setProductForm((prev) => ({
       ...prev,
@@ -190,9 +173,7 @@ export function OrderItemForm({
     }));
   }, [
     productForm.declaredPricePerUnit,
-    productForm.declaredPricePerKg,
     productForm.unit,
-    productForm.kg,
     productAmountsManuallyEdited.declared,
   ]);
 
@@ -202,9 +183,7 @@ export function OrderItemForm({
     }
     const calculated = calculateAmount(
       productForm.actualPricePerUnit,
-      productForm.unit,
-      productForm.actualPricePerKg,
-      productForm.kg
+      productForm.unit
     );
     setProductForm((prev) => ({
       ...prev,
@@ -212,9 +191,7 @@ export function OrderItemForm({
     }));
   }, [
     productForm.actualPricePerUnit,
-    productForm.actualPricePerKg,
     productForm.unit,
-    productForm.kg,
     productAmountsManuallyEdited.actual,
   ]);
 

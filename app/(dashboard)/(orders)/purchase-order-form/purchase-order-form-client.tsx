@@ -44,7 +44,10 @@ export default function PurchaseOrderFormClient({
           <OrderConfig orderId={effectiveOrderId} orderType={orderType} />
           <br />
           <OrderItemsTable orderId={effectiveOrderId} />
-          <OrderTransactionsTable orderId={effectiveOrderId} />
+          <OrderTransactionsTable
+            orderId={effectiveOrderId}
+            orderType={orderType}
+          />
           <OrderChargesTable orderId={effectiveOrderId} />
           <br />
           <OrderNote orderId={effectiveOrderId} orderType={orderType} />
