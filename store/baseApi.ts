@@ -22,6 +22,7 @@ export const baseApi = createApi({
     "OrderTransactions",
     "OrderCharges",
     "PurchaseOrder",
+    "OrderInventory",
   ],
   endpoints: () => ({}), // Empty endpoints object - will be injected
 });

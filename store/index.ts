@@ -12,3 +12,4 @@ export * from "./endpoints/orderConfig";
 export * from "./endpoints/orderItems";
 export * from "./endpoints/orderTransactions";
 export * from "./endpoints/orderCharges";
+export * from "./endpoints/orderInventory";
