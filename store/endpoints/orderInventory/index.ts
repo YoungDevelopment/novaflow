@@ -5,6 +5,14 @@ import {
   CreateOrderInventoryRequest,
   UpdateOrderInventoryRequest,
   DeleteOrderInventoryRequest,
+  CheckSplitEligibilityResponse,
+  CheckSplitEligibilityParams,
+  FetchSplitOptionsResponse,
+  FetchSplitOptionsParams,
+  SubmitSplitRequest,
+  SubmitSplitResponse,
+  SyncToInventoryRequest,
+  SyncToInventoryResponse,
 } from "./type";
 
 // Inject order inventory endpoints into the base API
@@ -79,6 +87,76 @@ export const orderInventoryApi = baseApi.injectEndpoints({
       // Delete payload doesn't contain order_id; invalidate all headers to ensure refresh
       invalidatesTags: ["OrderInventory", "OrderHeader"],
     }),
+
+    // Check split eligibility
+    checkSplitEligibility: builder.query<
+      CheckSplitEligibilityResponse,
+      CheckSplitEligibilityParams
+    >({
+      query: (params) => {
+        const searchParams = new URLSearchParams();
+        if (params.inventory_id) {
+          searchParams.append("inventory_id", params.inventory_id);
+        }
+        if (params.barcode_tag) {
+          searchParams.append("barcode_tag", params.barcode_tag);
+        }
+        if (params.product_code) {
+          searchParams.append("product_code", params.product_code);
+        }
+        return {
+          url: `/order-inventory/check-split-eligibility?${searchParams.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["OrderInventory"],
+    }),
+
+    // Fetch split options
+    fetchSplitOptions: builder.query<
+      FetchSplitOptionsResponse,
+      FetchSplitOptionsParams
+    >({
+      query: (params) => {
+        const searchParams = new URLSearchParams();
+        searchParams.append("product_code", params.product_code);
+        searchParams.append("remaining_width", params.remaining_width.toString());
+        if (params.is_first_split !== undefined) {
+          searchParams.append(
+            "is_first_split",
+            params.is_first_split.toString()
+          );
+        }
+        return {
+          url: `/order-inventory/fetch-split-options?${searchParams.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["OrderInventory"],
+    }),
+
+    // Submit split
+    submitSplit: builder.mutation<SubmitSplitResponse, SubmitSplitRequest>({
+      query: (splitRequest) => ({
+        url: "/order-inventory/submit-split",
+        method: "POST",
+        body: splitRequest,
+      }),
+      invalidatesTags: ["OrderInventory", "OrderHeader"],
+    }),
+
+    // Sync order items to inventory
+    syncToInventory: builder.mutation<
+      SyncToInventoryResponse,
+      SyncToInventoryRequest
+    >({
+      query: (body) => ({
+        url: "/order-inventory/sync-to-inventory",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["OrderInventory", "OrderHeader"],
+    }),
   }),
 });
 
@@ -88,4 +166,8 @@ export const {
   useCreateOrderInventoryMutation,
   useUpdateOrderInventoryMutation,
   useDeleteOrderInventoryMutation,
+  useCheckSplitEligibilityQuery,
+  useFetchSplitOptionsQuery,
+  useSubmitSplitMutation,
+  useSyncToInventoryMutation,
 } = orderInventoryApi;

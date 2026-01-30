@@ -125,17 +125,22 @@ export function InventoryTable({
     ),
   ];
 
-  // Create custom actions cell that conditionally shows Split only for products
+  // Create custom actions cell that conditionally shows Split only for products with unit_quantity > 1
   const actionsCell = React.useCallback(
     (value: any, row: OrderInventory) => {
       const isProduct = row.type?.toLowerCase() === "product";
+      const unitQuantity = Number(
+        row.total_unit_quantity ?? row.unit_quantity ?? 0
+      );
+      const isEligibleForSplit = isProduct && unitQuantity > 1;
+
       const availableActions = [
         {
           label: "Info",
           icon: <Info className="mr-2 h-4 w-4" />,
           onClick: () => onInfoClick(row),
         },
-        ...(isProduct
+        ...(isEligibleForSplit
           ? [
               {
                 label: "Split",

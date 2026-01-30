@@ -90,10 +90,10 @@ const data: { navMain: NavSection[] } = {
       items: [{ title: "Contribution Guide", url: "/contribute" }],
     },
     {
-      title: "OnBoarding",
-      url: "/create-user",
+      title: "Inventory",
+      url: "/inventory",
       allowedRoles: ["owner"], // 👈 only owners see this
-      items: [{ title: "Create a new User", url: "/create-user" }],
+      items: [{ title: "All Inventory", url: "/inventory" }],
     },
     {
       title: "Orders",

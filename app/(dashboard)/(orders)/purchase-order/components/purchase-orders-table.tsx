@@ -3,10 +3,7 @@
 import * as React from "react";
 import { X, ChevronDown, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import {
-  DataTable,
-  createColumn,
-} from "@/components/ui/data-table";
+import { DataTable, createColumn } from "@/components/ui/data-table";
 import { Purchase } from "@/store/endpoints/purchaseOrder/type";
 import { useFetchPurchaseOrdersQuery } from "@/store/endpoints/purchaseOrder";
 import { Button } from "@/components/ui/button";
@@ -32,8 +29,12 @@ import { useFetchVendorNamesQuery } from "@/store/endpoints/vendorProducts";
 const STATUS_OPTIONS = [
   { value: "all", label: "All Status" },
   { value: "Incomplete", label: "Incomplete" },
+  { value: "Not Received", label: "Not Received" },
+  { value: "In Progress", label: "In Progress" },
+  { value: "Pending Dues", label: "Pending Dues" },
+  { value: "Overdue", label: "Overdue" },
+  { value: "Overpaid", label: "Overpaid" },
   { value: "Complete", label: "Complete" },
-  { value: "Inprogress", label: "Inprogress" },
 ];
 
 export function PurchaseOrdersTable() {
@@ -68,8 +69,7 @@ export function PurchaseOrdersTable() {
   }, [searchTerm]);
 
   // Build status filter array
-  const statusFilter =
-    selectedStatus === "all" ? undefined : [selectedStatus];
+  const statusFilter = selectedStatus === "all" ? undefined : [selectedStatus];
 
   // Build vendor filter - use entity_id with Vendor_ID
   const vendorFilter = selectedVendor?.id || undefined;
@@ -85,11 +85,7 @@ export function PurchaseOrdersTable() {
     return undefined;
   }, [dateRange]);
 
-  const {
-    data,
-    isLoading: isLoadingData,
-    isError,
-  } = useFetchPurchaseOrdersQuery({
+  const { data, isFetching, isError } = useFetchPurchaseOrdersQuery({
     page: currentPage,
     limit: recordsPerPage,
     status: statusFilter,
@@ -105,7 +101,7 @@ export function PurchaseOrdersTable() {
     limit: 10,
     totalPages: 0,
   };
-  const isLoading = isLoadingData || isError || vendorsLoading;
+  const isLoading = isFetching || vendorsLoading;
 
   const handleRecordsPerPageChange = (limit: number) => {
     setRecordsPerPage(limit);
@@ -167,9 +163,7 @@ export function PurchaseOrdersTable() {
       align: "center",
     }),
     createColumn<Purchase>("entity_id", "Entity ID", {
-      cell: (value) => (
-        <span className="font-medium">{value || "N/A"}</span>
-      ),
+      cell: (value) => <span className="font-medium">{value || "N/A"}</span>,
       align: "center",
     }),
     createColumn<Purchase>("company", "Company", {
@@ -179,9 +173,19 @@ export function PurchaseOrdersTable() {
     createColumn<Purchase>("status", "Status", {
       cell: (value) => {
         const statusColors: Record<string, string> = {
-          Complete: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-          Inprogress: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-          Incomplete: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+          Complete:
+            "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+          "In Progress":
+            "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+          Incomplete:
+            "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
+          "Not Received":
+            "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+          "Pending Dues":
+            "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+          Overdue: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+          Overpaid:
+            "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
         };
         const colorClass =
           statusColors[value as string] ||
@@ -213,7 +217,8 @@ export function PurchaseOrdersTable() {
     }),
     createColumn<Purchase>("created_at", "Created At", {
       cell: (value) => {
-        if (!value) return <span className="text-muted-foreground/60">N/A</span>;
+        if (!value)
+          return <span className="text-muted-foreground/60">N/A</span>;
         try {
           const date = new Date(value);
           return (
@@ -350,4 +355,3 @@ export function PurchaseOrdersTable() {
     </div>
   );
 }
-

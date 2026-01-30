@@ -5,7 +5,7 @@
  *  - Validate input with Zod
  *  - Check order_id exists in orders table
  *  - Generate inventory_id using id-generator.ts (Prefix: INV)
- *  - Generate barcode_tag from product_code and declared_price_per_unit
+ *  - Generate barcode_tag from product_code and actual_price_per_unit
  *  - Insert into order_inventory table
  */
 
@@ -19,18 +19,18 @@ import {
 } from "../validators/createOrderInventoryValidator";
 
 /**
- * Generate barcode_tag from product_code and declared_price_per_unit
- * Format: "product_code - declared_price_per_unit"
+ * Generate barcode_tag from product_code and actual_price_per_unit
+ * Format: "product_code - actual_price_per_unit"
  */
 function generateBarcodeTag(
   productCode: string,
-  declaredPricePerUnit?: number | null
+  actualPricePerUnit?: number | null
 ): string | null {
   if (!productCode) return null;
-  if (declaredPricePerUnit === undefined || declaredPricePerUnit === null) {
+  if (actualPricePerUnit === undefined || actualPricePerUnit === null) {
     return productCode;
   }
-  return `${productCode} - ${declaredPricePerUnit}`;
+  return `${productCode} - ${actualPricePerUnit}`;
 }
 
 export async function POST(req: NextRequest) {
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
     // 3. Generate barcode_tag
     const barcodeTag = generateBarcodeTag(
       input.product_code,
-      input.declared_price_per_unit
+      input.actual_price_per_unit
     );
 
     // 4. Insert record
@@ -106,13 +106,13 @@ export async function POST(req: NextRequest) {
         input.order_payment_type,
         input.type,
         input.product_code,
-        input.unit_quantity || null,
-        input.kg_quantity || null,
+        input.unit_quantity ?? null,
+        input.kg_quantity ?? null,
         barcodeTag,
-        input.declared_price_per_unit || null,
-        input.declared_price_per_kg || null,
-        input.actual_price_per_unit || null,
-        input.actual_price_per_kg || null,
+        input.declared_price_per_unit ?? null,
+        input.declared_price_per_kg ?? null,
+        input.actual_price_per_unit ?? null,
+        input.actual_price_per_kg ?? null,
       ]
     );
 

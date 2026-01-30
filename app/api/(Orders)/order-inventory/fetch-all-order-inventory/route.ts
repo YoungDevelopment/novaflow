@@ -5,7 +5,7 @@
  * - order_id: Optional filter by order_id
  * - page: Page number (default: 1)
  * - limit: Items per page (default: 10, max: 100)
- * - mode: "available" (only items with unit_quantity > 0) or omitted for "all" (default: "all")
+ * - mode: "available" (only groups with SUM(unit_quantity) > 0) or omitted for "all" (default: "all")
  * - search: Optional search term to filter by Product_Description or Hardware_Code_Description
  * - group_by: Group by field (e.g., "barcode_tag"). When set, returns aggregated data
  *
@@ -115,11 +115,9 @@ export async function GET(req: NextRequest) {
       params.push(orderId);
     }
 
-    // Filter for available items only (unit_quantity > 0) if mode is explicitly set to "available"
-    // If mode is not set, show all items including zero quantities
-    if (mode === "available") {
-      where.push("oi.unit_quantity > 0");
-    }
+    // Important: We do NOT filter rows by oi.unit_quantity here.
+    // Inventory uses "delta rows" (including negative quantities for removals),
+    // so availability must be computed on the aggregated SUM(unit_quantity).
 
     // Filter by type (product or hardware)
     if (typeFilter) {
@@ -143,12 +141,18 @@ export async function GET(req: NextRequest) {
       // Grouped query with aggregation
       const groupByField = groupBy === "type" ? "oi.Type" : `oi.${groupBy}`;
       const groupByAlias = groupBy === "type" ? "type" : groupBy;
+      const havingClause = mode === "available" ? "HAVING SUM(oi.unit_quantity) > 0" : "";
 
-      // Count distinct groups
+      // Count groups (respecting HAVING when mode=available)
       countSql = `
-        SELECT COUNT(DISTINCT ${groupByField}) AS total
-        FROM order_inventory oi
-        ${whereClause};
+        SELECT COUNT(*) AS total
+        FROM (
+          SELECT ${groupByField}
+          FROM order_inventory oi
+          ${whereClause}
+          GROUP BY ${groupByField}
+          ${havingClause}
+        ) AS grouped;
       `;
       countParams = [...params];
 
@@ -162,7 +166,7 @@ export async function GET(req: NextRequest) {
         FROM order_inventory oi
         ${whereClause}
         GROUP BY ${groupByField}
-        HAVING SUM(oi.unit_quantity) > 0
+        ${havingClause}
         ORDER BY ${groupByField} ASC
         LIMIT ? OFFSET ?;
       `;
@@ -174,7 +178,6 @@ export async function GET(req: NextRequest) {
       if (!groupWhere.some(w => w.includes("barcode_tag IS NOT NULL"))) {
         groupWhere.push("oi.barcode_tag IS NOT NULL");
       }
-      const groupWhereClause = groupWhere.length ? `WHERE ${groupWhere.join(" AND ")}` : "";
 
       // Build HAVING clause based on mode
       // Only filter by quantity if mode is explicitly "available"
@@ -187,17 +190,15 @@ export async function GET(req: NextRequest) {
       let productJoin = "";
       let hardwareJoin = "";
       let descriptionSelect = "";
-      let groupByDescription = "";
       const searchWhere: string[] = [];
       const searchParams: any[] = [];
 
       if (typeFilter === "product") { 
         // Only join with vendor_product_code for products
         productJoin = `INNER JOIN vendor_product_code vpc 
-          ON oi.product_code = vpc.Product_Code 
+          ON UPPER(TRIM(oi.product_code)) = UPPER(TRIM(vpc.Product_Code))
           AND LOWER(TRIM(oi.Type)) = 'product'`;
-        descriptionSelect = "vpc.Product_Description as description";
-        groupByDescription = ", vpc.Product_Description";
+        descriptionSelect = "MAX(vpc.Product_Description) as description";
         if (search) {
           searchWhere.push("vpc.Product_Description LIKE ?");
           searchParams.push(`%${search}%`);
@@ -205,10 +206,9 @@ export async function GET(req: NextRequest) {
       } else if (typeFilter === "hardware") {
         // Only join with Vendor_Hardware_code for hardware
         hardwareJoin = `INNER JOIN Vendor_Hardware_code vhc 
-          ON oi.product_code = vhc.Hardware_Code 
+          ON UPPER(TRIM(oi.product_code)) = UPPER(TRIM(vhc.Hardware_Code))
           AND LOWER(TRIM(oi.Type)) = 'hardware'`;
-        descriptionSelect = "vhc.Hardware_Code_Description as description";
-        groupByDescription = ", vhc.Hardware_Code_Description";
+        descriptionSelect = "MAX(vhc.Hardware_Code_Description) as description";
         if (search) {
           searchWhere.push("vhc.Hardware_Code_Description LIKE ?");
           searchParams.push(`%${search}%`);
@@ -216,11 +216,11 @@ export async function GET(req: NextRequest) {
       } else {
         // Join with both tables (default behavior)
         productJoin = `LEFT JOIN vendor_product_code vpc 
-          ON oi.product_code = vpc.Product_Code `;
+          ON UPPER(TRIM(oi.product_code)) = UPPER(TRIM(vpc.Product_Code)) `;
         hardwareJoin = `LEFT JOIN Vendor_Hardware_code vhc 
-          ON oi.product_code = vhc.Hardware_Code `;
-        descriptionSelect = "COALESCE(vpc.Product_Description, vhc.Hardware_Code_Description) as description";
-        groupByDescription = ", vpc.Product_Description, vhc.Hardware_Code_Description";
+          ON UPPER(TRIM(oi.product_code)) = UPPER(TRIM(vhc.Hardware_Code)) `;
+        descriptionSelect =
+          "MAX(COALESCE(vpc.Product_Description, vhc.Hardware_Code_Description)) as description";
         if (search) {
           searchWhere.push("(vpc.Product_Description LIKE ? OR vhc.Hardware_Code_Description LIKE ?)");
           searchParams.push(`%${search}%`, `%${search}%`);
@@ -238,12 +238,13 @@ export async function GET(req: NextRequest) {
       countSql = `
         SELECT COUNT(*) AS total
         FROM (
-          SELECT oi.barcode_tag
+          SELECT
+            UPPER(TRIM(oi.barcode_tag)) AS barcode_tag
           FROM order_inventory oi
           ${productJoin}
           ${hardwareJoin}
           ${finalGroupWhereClause}
-          GROUP BY oi.barcode_tag
+          GROUP BY UPPER(TRIM(oi.barcode_tag))
           ${havingClause}
         ) AS grouped;
       `;
@@ -252,20 +253,20 @@ export async function GET(req: NextRequest) {
       // Group by barcode_tag with aggregation
       selectSql = `
         SELECT
-          oi.barcode_tag,
-          oi.product_code,
-          oi.Type as type,
+          UPPER(TRIM(oi.barcode_tag)) AS barcode_tag,
+          MAX(UPPER(TRIM(oi.product_code))) AS product_code,
+          MAX(LOWER(TRIM(oi.Type))) AS type,
           SUM(oi.unit_quantity) AS total_unit_quantity,
-          oi.actual_price_per_unit AS actaul_price_per_unit,
+          MAX(oi.actual_price_per_unit) AS actaul_price_per_unit,
           COUNT(*) AS item_count,
           ${descriptionSelect}
         FROM order_inventory oi
         ${productJoin}
         ${hardwareJoin}
         ${finalGroupWhereClause}
-        GROUP BY oi.barcode_tag, oi.product_code, oi.Type${groupByDescription}
+        GROUP BY UPPER(TRIM(oi.barcode_tag))
         ${havingClause}
-        ORDER BY oi.barcode_tag ASC
+        ORDER BY UPPER(TRIM(oi.barcode_tag)) ASC
         LIMIT ? OFFSET ?;
       `;
       selectParams = [...params, ...searchParams, limit, offset];

@@ -71,3 +71,68 @@ export interface UpdateOrderInventoryRequest {
   actual_price_per_unit?: number;
   actual_price_per_kg?: number;
 }
+
+// Split Inventory Types
+export interface CheckSplitEligibilityResponse {
+  eligible: boolean;
+  available_sqm: number;
+  product_code: string;
+  original_width: number;
+  vendor_id: string;
+  adhesive_type: string;
+  paper_gsm: number;
+  material: string;
+  inventory_id?: string; // Returned when using barcode_tag lookup
+}
+
+export interface CheckSplitEligibilityParams {
+  inventory_id?: string;
+  barcode_tag?: string;
+  product_code?: string;
+}
+
+export interface SplitOption {
+  product_code: string;
+  width: number;
+  product_description: string;
+}
+
+export interface FetchSplitOptionsResponse {
+  options: SplitOption[];
+}
+
+export interface FetchSplitOptionsParams {
+  product_code: string;
+  remaining_width: number;
+  is_first_split?: boolean;
+}
+
+export interface SubmitSplitRequest {
+  inventory_id: string;
+  requested_sqm: number;
+  splits: Array<{
+    product_code: string;
+  }>;
+}
+
+export interface SubmitSplitResponse {
+  message: string;
+  breakdown?: Array<{
+    inventory_id: string;
+    product_code: string;
+    width: number;
+    allocated_sqm: number;
+  }>;
+}
+
+// Sync to Inventory Types
+export interface SyncToInventoryRequest {
+  order_id: string;
+}
+
+export interface SyncToInventoryResponse {
+  message: string;
+  synced_count: number;
+  created_count: number;
+  updated_count: number;
+}

@@ -11,6 +11,7 @@ export type RecalcResult = {
     subtotal: number;
   };
   total_due: number;
+  status: string;
 };
 
 function asNumber(value: any): number {
@@ -66,32 +67,98 @@ export async function recalculateOrderTotalDue(
   );
   const paidTotal = asNumber(paidRes?.rows?.[0]?.total);
 
-  // Tax percentage
-  const taxRes = await turso.execute(
+  // Tax percentage and committed date from order_config
+  const configRes = await turso.execute(
     `
-      SELECT COALESCE(tax_percentage, 0) AS tax_percentage
+      SELECT COALESCE(tax_percentage, 0) AS tax_percentage, committed_date
       FROM order_config
       WHERE order_id = ?
       LIMIT 1
     `,
     [orderId]
   );
-  const taxPercentage = asNumber(taxRes?.rows?.[0]?.tax_percentage);
+  const taxPercentage = asNumber(configRes?.rows?.[0]?.tax_percentage);
+  const committedDate = configRes?.rows?.[0]?.committed_date as string | null;
+
+  // Total items count
+  const totalItemsRes = await turso.execute(
+    `
+      SELECT COUNT(*) AS count
+      FROM Order_Items
+      WHERE order_id = ?
+    `,
+    [orderId]
+  );
+  const totalItems = asNumber(totalItemsRes?.rows?.[0]?.count);
+
+  // Received items count (movement = 'Y')
+  const receivedItemsRes = await turso.execute(
+    `
+      SELECT COUNT(*) AS count
+      FROM Order_Items
+      WHERE order_id = ? AND movement = 'Y'
+    `,
+    [orderId]
+  );
+  const receivedItems = asNumber(receivedItemsRes?.rows?.[0]?.count);
+
+  // Transaction count
+  const transactionCountRes = await turso.execute(
+    `
+      SELECT COUNT(*) AS count
+      FROM Order_Transactions
+      WHERE Order_ID = ?
+    `,
+    [orderId]
+  );
+  const transactionCount = asNumber(transactionCountRes?.rows?.[0]?.count);
 
   // Business rule: tax on items actual only
   const taxOnItemsActual =
     (itemsActualTotal * Math.max(0, taxPercentage)) / 100;
 
   const subtotal = itemsActualTotal + chargesTotal;
-  const newTotalDue = Math.max(0, subtotal + taxOnItemsActual - paidTotal);
+  const grossTotal = subtotal + taxOnItemsActual;
+  const newTotalDue = Math.max(0, grossTotal - paidTotal);
+
+  // Determine status based on priority hierarchy
+  let newStatus = "Incomplete";
+
+  if (totalItems > 0) {
+    const allReceived = receivedItems === totalItems;
+    const someReceived = receivedItems > 0;
+    const noneReceived = receivedItems === 0;
+    const isOverpaid = paidTotal > grossTotal;
+    const isOverdue =
+      committedDate &&
+      new Date(committedDate) < new Date() &&
+      !allReceived;
+
+    // Check Complete first (overrides all other statuses)
+    if (allReceived && newTotalDue === 0) {
+      newStatus = "Complete";
+    }
+    // Priority hierarchy: Overdue > Overpaid > Pending Dues > In Progress > Not Received
+    else if (isOverdue) {
+      newStatus = "Overdue";
+    } else if (isOverpaid) {
+      newStatus = "Overpaid";
+    } else if (someReceived && newTotalDue > 0) {
+      newStatus = "Pending Dues";
+    } else if (someReceived || transactionCount > 0) {
+      newStatus = "In Progress";
+    } else if (noneReceived) {
+      newStatus = "Not Received";
+    }
+  }
 
   await turso.execute(
     `
       UPDATE orders
-      SET total_due = ?, updated_at = CURRENT_TIMESTAMP
+      SET total_due = ?, status = ?, updated_at = CURRENT_TIMESTAMP
       WHERE order_id = ?
     `,
-    [newTotalDue, orderId]
+    [newTotalDue, newStatus, orderId]
   );
 
   return {
@@ -105,5 +172,6 @@ export async function recalculateOrderTotalDue(
       subtotal,
     },
     total_due: newTotalDue,
+    status: newStatus,
   };
 }

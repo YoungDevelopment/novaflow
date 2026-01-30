@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
+import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -17,6 +18,7 @@ import {
 } from "@/store/endpoints/orderHeader";
 import { useFetchVendorsQuery } from "@/store/endpoints/vendor";
 import { OrderHeader } from "@/store/endpoints/orderHeader/type";
+import { SyncToInventoryDialog } from "./sync-to-inventory-dialog";
 
 interface OrderDetailsProps {
   orderId?: string;
@@ -35,6 +37,7 @@ export default function OrderDetails({
   const [createdOrderData, setCreatedOrderData] = useState<OrderHeader | null>(
     null
   );
+  const [showSyncDialog, setShowSyncDialog] = useState(false);
 
   // Fetch vendors
   const { data: vendorsData, isLoading: vendorsLoading } = useFetchVendorsQuery(
@@ -187,6 +190,19 @@ export default function OrderDetails({
                   </span>
                 </p>
               </div>
+
+              {/* Sync to Inventory Button */}
+              <div className="mb-3 lg:mb-4">
+                <Button
+                  onClick={() => setShowSyncDialog(true)}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Sync to Inventory
+                </Button>
+              </div>
             </>
           ) : (
             <div className="mb-6 lg:mb-8">
@@ -218,6 +234,15 @@ export default function OrderDetails({
           </div>
         </div>
       </div>
+
+      {/* Sync to Inventory Dialog */}
+      {orderData?.order_id && (
+        <SyncToInventoryDialog
+          orderId={orderData.order_id}
+          isOpen={showSyncDialog}
+          onClose={() => setShowSyncDialog(false)}
+        />
+      )}
     </div>
   );
 }

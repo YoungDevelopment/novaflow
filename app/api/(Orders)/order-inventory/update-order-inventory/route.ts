@@ -5,7 +5,7 @@
  *  - Validate input with Zod
  *  - Check inventory_id exists
  *  - If order_id is passed → ensure order exists
- *  - Regenerate barcode_tag if product_code or declared_price_per_unit is updated
+ *  - Regenerate barcode_tag if product_code or actual_price_per_unit is updated
  *  - Perform dynamic update & update updated_at
  */
 
@@ -18,18 +18,18 @@ import {
 } from "../validators/updateOrderInventoryValidator";
 
 /**
- * Generate barcode_tag from product_code and declared_price_per_unit
- * Format: "product_code - declared_price_per_unit"
+ * Generate barcode_tag from product_code and actual_price_per_unit
+ * Format: "product_code - actual_price_per_unit"
  */
 function generateBarcodeTag(
   productCode: string,
-  declaredPricePerUnit?: number | null
+  actualPricePerUnit?: number | null
 ): string | null {
   if (!productCode) return null;
-  if (declaredPricePerUnit === undefined || declaredPricePerUnit === null) {
+  if (actualPricePerUnit === undefined || actualPricePerUnit === null) {
     return productCode;
   }
-  return `${productCode} - ${declaredPricePerUnit}`;
+  return `${productCode} - ${actualPricePerUnit}`;
 }
 
 export async function PATCH(req: NextRequest) {
@@ -89,14 +89,14 @@ export async function PATCH(req: NextRequest) {
       input.product_code !== undefined
         ? input.product_code
         : existingRecord.product_code;
-    const declaredPricePerUnit =
-      input.declared_price_per_unit !== undefined
-        ? input.declared_price_per_unit
-        : existingRecord.declared_price_per_unit;
+    const actualPricePerUnit =
+      input.actual_price_per_unit !== undefined
+        ? input.actual_price_per_unit
+        : existingRecord.actual_price_per_unit;
 
     const shouldUpdateBarcode =
       input.product_code !== undefined ||
-      input.declared_price_per_unit !== undefined;
+      input.actual_price_per_unit !== undefined;
 
     // 4. Dynamic SQL update
     const fields: string[] = [];
@@ -116,7 +116,7 @@ export async function PATCH(req: NextRequest) {
 
     // Add barcode_tag if needed
     if (shouldUpdateBarcode) {
-      const barcodeTag = generateBarcodeTag(productCode, declaredPricePerUnit);
+      const barcodeTag = generateBarcodeTag(productCode, actualPricePerUnit);
       fields.push("barcode_tag = ?");
       values.push(barcodeTag);
     }

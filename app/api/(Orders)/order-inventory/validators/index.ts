@@ -4,3 +4,5 @@
 export * from "./createOrderInventoryValidator";
 export * from "./updateOrderInventoryValidator";
 export * from "./deleteOrderInventoryValidator";
+export * from "./splitInventoryValidator";
+export * from "./syncToInventoryValidator";

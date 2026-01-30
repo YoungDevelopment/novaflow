@@ -16,6 +16,7 @@ import {
   fetchOrderHeaderSchema,
   FetchOrderHeaderInput,
 } from "../validators/fetchOrderHeaderValidator";
+import { recalculateOrderTotalDue } from "@/app/api/utils/amount-calculator";
 
 function nullsToEmpty(obj: Record<string, any>) {
   const out: Record<string, any> = {};
@@ -44,6 +45,15 @@ export async function GET(req: NextRequest) {
       );
     }
     const validatedData: FetchOrderHeaderInput = parsed.data;
+
+    // ✅ Recalculate total_due and status before fetching
+    // This ensures the order status is always up-to-date when viewing the invoice
+    try {
+      await recalculateOrderTotalDue(validatedData.order_id);
+    } catch (recalcErr) {
+      // Log but don't fail the request - order might not exist yet
+      console.warn("Recalculate on fetch skipped:", recalcErr);
+    }
 
     // ✅ Fetch order by ID
     const sql = `

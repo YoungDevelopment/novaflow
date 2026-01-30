@@ -14,6 +14,7 @@ import {
   updateOrderHeaderSchema,
   UpdateOrderHeaderInput,
 } from "../validators/updateOrderHeaderValidator";
+import { recalculateOrderTotalDue } from "@/app/api/utils/amount-calculator";
 
 export async function PATCH(req: NextRequest) {
   try {
@@ -87,6 +88,14 @@ export async function PATCH(req: NextRequest) {
         },
         500
       );
+    }
+
+    // ✅ Recalculate total_due and status after update
+    // This ensures the order status is always up-to-date after any edit
+    try {
+      await recalculateOrderTotalDue(data.order_id);
+    } catch (recalcErr) {
+      console.warn("Recalculate after order update failed:", recalcErr);
     }
 
     // ✅ Fetch and return the updated order
