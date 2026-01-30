@@ -46,50 +46,6 @@ type NavSection = {
 const data: { navMain: NavSection[] } = {
   navMain: [
     {
-      title: "Getting Started",
-      url: "/getting-started",
-      allowedRoles: ["owner", "admin", "user"],
-      items: [
-        { title: "Installation", url: "/installation" },
-        { title: "Project Structure", url: "/structure" },
-      ],
-    },
-
-    {
-      title: "Building Your Application",
-      url: "/building",
-      allowedRoles: ["owner", "admin"],
-      items: [
-        { title: "Routing", url: "/routing" },
-        { title: "Data Fetching", url: "/data" },
-        { title: "Rendering", url: "/rendering" },
-      ],
-    },
-    {
-      title: "API Reference",
-      url: "/api",
-      allowedRoles: ["owner", "admin"],
-      items: [
-        { title: "Components", url: "/components" },
-        { title: "CLI", url: "/cli" },
-      ],
-    },
-    {
-      title: "Architecture",
-      url: "/architecture",
-      allowedRoles: ["owner"], // 👈 only owners see this
-      items: [
-        { title: "Accessibility", url: "/accessibility" },
-        { title: "Turbopack", url: "/turbopack" },
-      ],
-    },
-    {
-      title: "Community",
-      url: "/community",
-      allowedRoles: ["owner", "admin", "user"],
-      items: [{ title: "Contribution Guide", url: "/contribute" }],
-    },
-    {
       title: "Inventory",
       url: "/inventory",
       allowedRoles: ["owner"], // 👈 only owners see this
