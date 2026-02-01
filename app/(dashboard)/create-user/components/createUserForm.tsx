@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createUser } from "../helper";
+import { createUser } from "../helper"; // ✅ Import helper function
 
 export function CreateUserForm({
   className,

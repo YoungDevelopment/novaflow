@@ -1,7 +1,6 @@
 "use client";
 
 import { toast } from "sonner";
-import { getApiUrl } from "@/lib/api-config";
 
 export async function createUser(formData: FormData) {
   const data = {
@@ -14,7 +13,7 @@ export async function createUser(formData: FormData) {
   };
 
   try {
-    const res = await fetch(getApiUrl("/create-user-api"), {
+    const res = await fetch("/api/create-user-api", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -38,19 +37,18 @@ export async function createUser(formData: FormData) {
       throw new Error("Failed to create user");
     }
 
-    toast.success(
-      `User created ${data.email} has been successfully registered.`,
-      {
-        description: `${data.email} has been successfully registered.`,
-      }
-    );
+    toast("✅ User created", {
+      description: `${data.email} has been successfully registered.`,
+    });
 
     return { success: true };
   } catch (err: unknown) {
     let message = "An unexpected error occurred.";
     if (err instanceof Error) message = err.message;
 
-    toast.error(`Error creating user: ${message}`);
+    toast("❌ Error creating user", {
+      description: message,
+    });
 
     return { success: false, message };
   }

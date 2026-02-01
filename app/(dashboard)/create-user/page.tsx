@@ -1,6 +1,6 @@
 import { User } from "lucide-react";
 
-import { CreateUserForm } from "./components/createUserForm";
+import { CreateUserForm } from "@/app/(dashboard)/create-user/components/createUserForm";
 
 export default function LoginPage() {
   return (
