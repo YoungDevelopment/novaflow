@@ -54,6 +54,7 @@ const data: { navMain: NavSection[] } = {
         { title: "Project Structure", url: "/structure" },
       ],
     },
+
     {
       title: "Building Your Application",
       url: "/building",
@@ -93,6 +94,16 @@ const data: { navMain: NavSection[] } = {
       url: "/create-user",
       allowedRoles: ["owner"], // 👈 only owners see this
       items: [{ title: "Create a new User", url: "/create-user" }],
+    },
+    {
+      title: "Vendors",
+      url: "/vendors",
+      allowedRoles: ["owner"], // 👈 only owners see this
+      items: [
+        { title: "All Vendors", url: "/all-vendors" },
+        { title: "Vendor Product Codes", url: "/vendor-product-codes" },
+        { title: "Vendor Hardware Codes", url: "/vendor-hardware-codes" },
+      ],
     },
   ],
 };
