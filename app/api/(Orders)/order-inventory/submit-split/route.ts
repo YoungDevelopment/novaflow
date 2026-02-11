@@ -4,17 +4,17 @@
  * Request Body:
  * {
  *   inventory_id: string;
- *   requested_sqm: number;
+ *   requested_length_m: number;
  *   splits: Array<{ product_code: string }>;
  * }
  *
- * Validates and executes inventory split:
- * 1. Inventory exists and has enough SQM
- * 2. All product codes exist
- * 3. All product codes match attributes (vendor, adhesive, GSM, material)
- * 4. Sum of widths equals original width
- * 5. Updates original inventory (decreases SQM)
- * 6. Updates or creates inventory records for split products
+ * Split rules:
+ * - Widths are validated and handled as millimeters (integers).
+ * - All area math is computed in meters.
+ * - Sum of split widths cannot exceed master width.
+ * - Child SQM = child_width_m * requested_length_m.
+ * - Leftover SQM = leftover_width_m * requested_length_m.
+ * - Conservation is enforced with floating-point tolerance.
  */
 
 import { NextRequest } from "next/server";
@@ -25,6 +25,8 @@ import {
   SubmitSplitInput,
 } from "../validators/splitInventoryValidator";
 import { generateCustomId } from "@/app/api/utils/id-generator";
+
+const AREA_TOLERANCE = 1e-6;
 
 /**
  * Generate barcode_tag from product_code and actual_price_per_unit
@@ -39,6 +41,10 @@ function generateBarcodeTag(
     return productCode;
   }
   return `${productCode} - ${actualPricePerUnit}`;
+}
+
+function toAreaSqm(widthMm: number, lengthM: number) {
+  return (widthMm / 1000) * lengthM;
 }
 
 export async function POST(req: NextRequest) {
@@ -65,8 +71,7 @@ export async function POST(req: NextRequest) {
 
     const input: SubmitSplitInput = parsed.data;
 
-    // 1. Fetch and validate original inventory
-    // First try by inventory_id, if not found, try to find one by barcode_tag if provided
+    // 1. Fetch and validate original inventory row
     const inventoryResult = await turso.execute(
       `SELECT 
         oi.*,
@@ -82,10 +87,6 @@ export async function POST(req: NextRequest) {
       [input.inventory_id]
     );
 
-    // If not found by inventory_id, the frontend should have provided barcode_tag
-    // For now, we'll require inventory_id to be valid
-    // In the future, we could add barcode_tag support here too
-
     if (inventoryResult.rows.length === 0) {
       return errorResponse(
         {
@@ -97,7 +98,8 @@ export async function POST(req: NextRequest) {
     }
 
     const originalInventory = inventoryResult.rows[0] as any;
-    const originalWidth = Number(originalInventory.original_width) || 0;
+    const originalProductCode = String(originalInventory.product_code || "");
+    const originalWidthMm = Number(originalInventory.original_width);
     const originalVendorId = originalInventory.Vendor_ID || "";
     const originalAdhesiveType = originalInventory.Adhesive_Type || "";
     const originalPaperGsm = Number(originalInventory.Paper_GSM) || 0;
@@ -107,13 +109,37 @@ export async function POST(req: NextRequest) {
       (originalInventory.type as string | undefined) ??
       "product";
 
-    // 2. Compute available SQM (sum across the original bucket) and validate
-    const originalProductCode = originalInventory.product_code as string;
-    // IMPORTANT: Use the stored barcode_tag for availability calculations to avoid
-    // formatting mismatches (e.g. "50" vs "50.00") causing SUM() to return 0.
+    if (!Number.isInteger(originalWidthMm) || originalWidthMm <= 0) {
+      return errorResponse(
+        {
+          error: "ValidationError",
+          message:
+            "Original roll width must be a positive integer in millimeters",
+          details: { original_width: originalInventory.original_width },
+        },
+        400
+      );
+    }
+
+    // 2. Compute available SQM (same barcode bucket) and validate length-derived master area
+    const requestedLengthM = input.requested_length_m;
+    if (!Number.isFinite(requestedLengthM) || requestedLengthM <= 0) {
+      return errorResponse(
+        {
+          error: "ValidationError",
+          message: "requested_length_m must be a positive number",
+        },
+        400
+      );
+    }
+
+    // IMPORTANT: Use persisted barcode_tag first to avoid formatting mismatches.
     const originalBarcodeTag =
       (originalInventory.barcode_tag as string | null) ??
-      generateBarcodeTag(originalProductCode, originalInventory.actual_price_per_unit);
+      generateBarcodeTag(
+        originalProductCode,
+        originalInventory.actual_price_per_unit
+      );
 
     const availableRes = await turso.execute(
       `SELECT SUM(unit_quantity) AS available_sqm
@@ -123,15 +149,22 @@ export async function POST(req: NextRequest) {
          AND LOWER(TRIM(Type)) = 'product'`,
       [originalBarcodeTag, originalProductCode]
     );
-    const availableSqm = Number(availableRes?.rows?.[0]?.available_sqm ?? 0) || 0;
 
-    if (input.requested_sqm > availableSqm) {
+    const availableSqm = Number(availableRes?.rows?.[0]?.available_sqm ?? 0) || 0;
+    const masterSplitSqm = toAreaSqm(originalWidthMm, requestedLengthM);
+    const maxSplittableLengthM =
+      originalWidthMm > 0 ? availableSqm / (originalWidthMm / 1000) : 0;
+
+    if (masterSplitSqm > availableSqm + AREA_TOLERANCE) {
       return errorResponse(
         {
           error: "ValidationError",
-          message: "Requested SQM exceeds available inventory",
+          message:
+            "Requested split length exceeds available inventory for this roll",
           details: {
-            requested_sqm: input.requested_sqm,
+            requested_length_m: requestedLengthM,
+            max_split_length_m: maxSplittableLengthM,
+            requested_split_sqm: masterSplitSqm,
             available_sqm: availableSqm,
             product_code: originalProductCode,
             barcode_tag: originalBarcodeTag,
@@ -141,7 +174,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Fetch all split product codes (supports duplicates) and validate
+    // 3. Fetch selected split product codes (duplicates allowed in payload)
     const selectedProductCodes = input.splits.map((s) => s.product_code);
     const uniqueProductCodes = Array.from(new Set(selectedProductCodes));
     const placeholders = uniqueProductCodes.map(() => "?").join(",");
@@ -169,17 +202,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const splitProducts = splitProductsResult.rows as any[];
     const productByCode = new Map<string, any>(
-      splitProducts.map((p) => [p.Product_Code as string, p])
+      (splitProductsResult.rows as any[]).map((p) => [p.Product_Code as string, p])
     );
 
-    // 4-6. Validate configuration deterministically in row-order (supports duplicates)
-    let totalWidth = 0;
-    const splitWidths: number[] = [];
+    // 4. Validate product compatibility and width constraints
+    let totalSplitWidthMm = 0;
+    const splitWidthsMm: number[] = [];
+
     for (let i = 0; i < selectedProductCodes.length; i++) {
       const code = selectedProductCodes[i];
       const product = productByCode.get(code);
+
       if (!product) {
         return errorResponse(
           { error: "ValidationError", message: "Invalid split configuration" },
@@ -224,103 +258,84 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const width = Number(product.Width) || 0;
-      if (width <= 0) {
-        return errorResponse(
-          { error: "ValidationError", message: "Invalid split configuration" },
-          400
-        );
-      }
-
-      // First split rule: width must be strictly less than original width
-      if (i === 0 && width >= originalWidth) {
+      const widthMm = Number(product.Width);
+      if (!Number.isInteger(widthMm) || widthMm <= 0) {
         return errorResponse(
           {
             error: "ValidationError",
-            message: "Invalid split configuration",
+            message:
+              "Each split width must be a positive integer in millimeters",
+            details: { product_code: code, width: product.Width },
           },
           400
         );
       }
 
-      totalWidth += width;
-      splitWidths.push(width);
-    }
-
-    if (originalWidth <= 0) {
-      return errorResponse(
-        {
-          error: "ValidationError",
-          message: "Invalid original width for split allocation",
-        },
-        400
-      );
-    }
-
-    if (totalWidth !== originalWidth) {
-      return errorResponse(
-        {
-          error: "ValidationError",
-          message: "Remaining width cannot be matched",
-        },
-        400
-      );
-    }
-
-    // 6b. Allocate SQM proportionally to width (constant length assumption)
-    // allocated_sqm_i = requested_sqm * (Wi / W0)
-    const requestedSqm = input.requested_sqm;
-    const allocationEpsilon = 1e-9;
-    const allocations: number[] = [];
-    let allocatedSum = 0;
-
-    for (let i = 0; i < splitWidths.length; i++) {
-      let allocated: number;
-      if (i === splitWidths.length - 1) {
-        // Make totals exact (avoid float drift)
-        allocated = requestedSqm - allocatedSum;
-      } else {
-        allocated = requestedSqm * (splitWidths[i] / originalWidth);
-      }
-
-      // Clamp tiny float artifacts (e.g., -1e-15)
-      if (Math.abs(allocated) < allocationEpsilon) {
-        allocated = 0;
-      }
-
-      if (!Number.isFinite(allocated) || allocated < -allocationEpsilon) {
+      // Prevent no-op "split" on first row using the same full master width.
+      if (i === 0 && widthMm >= originalWidthMm) {
         return errorResponse(
           {
             error: "ValidationError",
-            message: "Failed to allocate SQM for split rows",
-            details: { allocated_sqm: allocated, row_index: i },
+            message:
+              "First split width must be less than master width to perform a split",
           },
           400
         );
       }
 
-      // Final clamp to ensure non-negative inserts
-      if (allocated < 0) allocated = 0;
-
-      allocations.push(allocated);
-      allocatedSum += allocated;
+      totalSplitWidthMm += widthMm;
+      splitWidthsMm.push(widthMm);
     }
 
-    // Sanity: ensure conservation within epsilon
-    if (Math.abs(allocatedSum - requestedSqm) > allocationEpsilon * 10) {
+    if (totalSplitWidthMm > originalWidthMm) {
       return errorResponse(
         {
-          error: "InternalError",
-          message: "Split SQM allocation does not conserve total SQM",
-          details: { requested_sqm: requestedSqm, allocated_sum: allocatedSum },
+          error: "ValidationError",
+          message:
+            "Invalid split configuration: sum of split widths exceeds master width",
+          details: {
+            master_width_mm: originalWidthMm,
+            selected_width_mm: totalSplitWidthMm,
+          },
         },
-        500
+        400
       );
     }
 
-    // 7. Execute split operation as ledger inserts (auditable)
-    // - Insert negative entry for original
-    // - Insert positive entry for each resulting product (duplicates allowed)
+    // 5. Compute child SQM + leftover SQM using length-driven math
+    const leftoverWidthMm = originalWidthMm - totalSplitWidthMm;
+    const splitAreasSqm = splitWidthsMm.map((widthMm) =>
+      toAreaSqm(widthMm, requestedLengthM)
+    );
+    const splitAreasTotalSqm = splitAreasSqm.reduce((sum, sqm) => sum + sqm, 0);
+    const leftoverSqm = toAreaSqm(leftoverWidthMm, requestedLengthM);
+    const reconstructedMasterSqm = splitAreasTotalSqm + leftoverSqm;
+
+    const conservationDelta = Math.abs(reconstructedMasterSqm - masterSplitSqm);
+    const allowedConservationDelta =
+      AREA_TOLERANCE * Math.max(1, masterSplitSqm);
+    if (conservationDelta > allowedConservationDelta) {
+      return errorResponse(
+        {
+          error: "ValidationError",
+          message:
+            "Split calculation failed conservation check (area mismatch detected)",
+          details: {
+            master_split_sqm: masterSplitSqm,
+            split_rows_sqm: splitAreasTotalSqm,
+            leftover_sqm: leftoverSqm,
+            conservation_delta: conservationDelta,
+            allowed_delta: allowedConservationDelta,
+          },
+        },
+        400
+      );
+    }
+
+    // 6. Execute auditable ledger inserts
+    // - Negative entry for transformed master area
+    // - Optional positive entry back to original for leftover strip area
+    // - Positive entries for each selected split row
     const insertSql = `INSERT INTO order_inventory (
       inventory_id,
       order_id,
@@ -364,11 +379,20 @@ export async function POST(req: NextRequest) {
       ];
     };
 
-    // IMPORTANT: generateCustomId() is not transaction-safe; if we generate multiple IDs
-    // before inserting, we'll get duplicates. So we generate an ID and INSERT immediately,
-    // like create-order-inventory does.
+    // Log the operation for traceability/audit.
+    console.info("submit-split operation", {
+      inventory_id: input.inventory_id,
+      original_product_code: originalProductCode,
+      requested_length_m: requestedLengthM,
+      master_width_mm: originalWidthMm,
+      selected_width_mm: totalSplitWidthMm,
+      leftover_width_mm: leftoverWidthMm,
+      master_split_sqm: masterSplitSqm,
+      split_rows_sqm: splitAreasTotalSqm,
+      leftover_sqm: leftoverSqm,
+    });
 
-    // 7a. Negative entry for original product (same barcode_tag bucket)
+    // 6a. Negative master-area entry
     const negativeId = await generateCustomId({
       tableName: "order_inventory",
       idColumnName: "inventory_id",
@@ -378,12 +402,29 @@ export async function POST(req: NextRequest) {
       ...makeArgs(
         negativeId,
         originalProductCode,
-        -requestedSqm,
+        -masterSplitSqm,
         originalBarcodeTag
       ),
     ]);
 
-    // 7b. Positive entries for each split selection (duplicates allowed)
+    // 6b. Positive leftover entry back to original bucket (if any)
+    if (leftoverSqm > AREA_TOLERANCE) {
+      const leftoverId = await generateCustomId({
+        tableName: "order_inventory",
+        idColumnName: "inventory_id",
+        prefix: "INV",
+      });
+      await turso.execute(insertSql, [
+        ...makeArgs(
+          leftoverId,
+          originalProductCode,
+          leftoverSqm,
+          originalBarcodeTag
+        ),
+      ]);
+    }
+
+    // 6c. Positive entries for selected split products (duplicates allowed)
     const breakdown: Array<{
       inventory_id: string;
       product_code: string;
@@ -393,7 +434,9 @@ export async function POST(req: NextRequest) {
 
     for (let i = 0; i < selectedProductCodes.length; i++) {
       const code = selectedProductCodes[i];
-      const allocatedSqm = allocations[i] ?? 0;
+      const allocatedSqm = splitAreasSqm[i] ?? 0;
+      const widthMm = splitWidthsMm[i] ?? 0;
+
       const newId = await generateCustomId({
         tableName: "order_inventory",
         idColumnName: "inventory_id",
@@ -404,13 +447,20 @@ export async function POST(req: NextRequest) {
       breakdown.push({
         inventory_id: newId,
         product_code: code,
-        width: splitWidths[i] ?? 0,
+        width: widthMm,
         allocated_sqm: allocatedSqm,
       });
     }
 
     return jsonResponse(
-      { message: "Inventory split completed successfully", breakdown },
+      {
+        message: "Inventory split completed successfully",
+        requested_length_m: requestedLengthM,
+        total_split_sqm: splitAreasTotalSqm,
+        leftover_width_mm: leftoverWidthMm,
+        leftover_sqm: leftoverSqm,
+        breakdown,
+      },
       200
     );
   } catch (error: any) {

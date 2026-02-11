@@ -14,17 +14,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { OrderInventory } from "@/store/endpoints/orderInventory/type";
 import {
   useCheckSplitEligibilityQuery,
-  useFetchSplitOptionsQuery,
   useSubmitSplitMutation,
 } from "@/store/endpoints/orderInventory";
 import type { SplitOption } from "@/store/endpoints/orderInventory/type";
@@ -42,13 +35,16 @@ interface SplitRow {
   productDescription: string;
 }
 
+const LENGTH_TOLERANCE = 1e-9;
+
 export function InventorySplitDialog({
   inventory,
   isOpen,
   onClose,
   onSuccess,
 }: InventorySplitDialogProps) {
-  const [requestedSqm, setRequestedSqm] = useState<string>("");
+  const [requestedLengthMeters, setRequestedLengthMeters] =
+    useState<string>("");
   const [splitRows, setSplitRows] = useState<SplitRow[]>([]);
   const [originalWidth, setOriginalWidth] = useState<number>(0);
   const [originalProductCode, setOriginalProductCode] = useState<string>("");
@@ -81,14 +77,59 @@ export function InventorySplitDialog({
     skip: !isOpen || !eligibilityParams,
   });
 
+  const requestedLengthValue = useMemo(
+    () => Number(requestedLengthMeters),
+    [requestedLengthMeters]
+  );
+
+  const masterWidthMeters = useMemo(
+    () => (originalWidth > 0 ? originalWidth / 1000 : 0),
+    [originalWidth]
+  );
+
+  const maxSplitLengthMeters = useMemo(() => {
+    if (masterWidthMeters <= 0) return 0;
+    return availableSqm / masterWidthMeters;
+  }, [availableSqm, masterWidthMeters]);
+
+  const requestedSplitSqm = useMemo(() => {
+    if (
+      !Number.isFinite(requestedLengthValue) ||
+      requestedLengthValue <= 0 ||
+      masterWidthMeters <= 0
+    ) {
+      return 0;
+    }
+    return masterWidthMeters * requestedLengthValue;
+  }, [requestedLengthValue, masterWidthMeters]);
+
+  const selectedWidth = useMemo(
+    () => splitRows.reduce((sum, row) => sum + (row.width || 0), 0),
+    [splitRows]
+  );
+
   // Calculate remaining width after all selected rows
   const totalRemainingWidth = useMemo(() => {
-    const selectedWidth = splitRows.reduce(
-      (sum, row) => sum + (row.width || 0),
-      0
-    );
     return originalWidth - selectedWidth;
-  }, [splitRows, originalWidth]);
+  }, [originalWidth, selectedWidth]);
+
+  const splitRowsSqm = useMemo(() => {
+    if (!Number.isFinite(requestedLengthValue) || requestedLengthValue <= 0) {
+      return 0;
+    }
+    return (selectedWidth / 1000) * requestedLengthValue;
+  }, [selectedWidth, requestedLengthValue]);
+
+  const leftoverSqm = useMemo(() => {
+    if (
+      !Number.isFinite(requestedLengthValue) ||
+      requestedLengthValue <= 0 ||
+      totalRemainingWidth <= 0
+    ) {
+      return 0;
+    }
+    return (totalRemainingWidth / 1000) * requestedLengthValue;
+  }, [totalRemainingWidth, requestedLengthValue]);
 
   // Calculate previous rows' total width for a given row index
   const getPreviousRowsWidth = (rowIndex: number) => {
@@ -103,7 +144,7 @@ export function InventorySplitDialog({
   useEffect(() => {
     if (eligibilityData && isOpen) {
       if (!eligibilityData.eligible) {
-        setErrors(["This inventory item is not eligible for splitting (SQM must be greater than 1)"]);
+        setErrors(["This inventory item is not eligible for splitting (SQM must be greater than 0)"]);
         setIsFormEnabled(false);
         return;
       }
@@ -114,15 +155,15 @@ export function InventorySplitDialog({
       setInventoryIdForSplit(eligibilityData.inventory_id || inventory?.inventory_id || "");
       setErrors([]);
       setIsFormEnabled(true);
-      setRequestedSqm("");
+      setRequestedLengthMeters("");
       setSplitRows([]);
     }
-  }, [eligibilityData, isOpen]);
+  }, [eligibilityData, isOpen, inventory?.inventory_id]);
 
   // Reset form when dialog closes
   useEffect(() => {
     if (!isOpen) {
-      setRequestedSqm("");
+      setRequestedLengthMeters("");
       setSplitRows([]);
       setOriginalWidth(0);
       setOriginalProductCode("");
@@ -133,33 +174,42 @@ export function InventorySplitDialog({
     }
   }, [isOpen]);
 
-  // Validate SQM input
+  // Validate split length input and derived SQM
   useEffect(() => {
-    if (!requestedSqm) {
+    if (!requestedLengthMeters) {
+      setErrors([]);
       setSplitRows([]);
       return;
     }
 
-    const sqm = Number(requestedSqm);
-    if (!Number.isFinite(sqm) || sqm <= 0) {
+    if (masterWidthMeters <= 0) {
+      setErrors(["Original width must be greater than zero to split inventory."]);
       setSplitRows([]);
       return;
     }
 
-    if (sqm > availableSqm) {
+    const splitLength = Number(requestedLengthMeters);
+    if (!Number.isFinite(splitLength) || splitLength <= 0) {
+      setSplitRows([]);
+      return;
+    }
+
+    const splitSqm = masterWidthMeters * splitLength;
+
+    if (splitSqm > availableSqm + LENGTH_TOLERANCE) {
       setErrors([
-        `Requested SQM (${sqm}) exceeds available inventory (${availableSqm})`,
+        `Requested split area (${splitSqm.toFixed(4)} SQM) exceeds available inventory (${availableSqm.toFixed(4)} SQM)`,
       ]);
       setSplitRows([]);
       return;
     }
 
     setErrors([]);
-    // Initialize first split row if not exists and SQM is valid
-    if (splitRows.length === 0 && sqm > 0 && sqm <= availableSqm) {
+    // Initialize first split row if not exists and split length is valid
+    if (splitRows.length === 0 && splitLength > 0) {
       setSplitRows([{ productCode: null, width: 0, productDescription: "" }]);
     }
-  }, [requestedSqm, availableSqm]);
+  }, [requestedLengthMeters, availableSqm, masterWidthMeters, splitRows.length]);
 
   // Note: We'll fetch options per row in the render, so no global auto-select needed
 
@@ -195,17 +245,30 @@ export function InventorySplitDialog({
   };
 
   const canCompleteSplit = useMemo(() => {
-    if (!requestedSqm || Number(requestedSqm) <= 0) return false;
-    if (Number(requestedSqm) > availableSqm) return false;
+    if (
+      !Number.isFinite(requestedLengthValue) ||
+      requestedLengthValue <= 0 ||
+      requestedSplitSqm <= 0
+    ) {
+      return false;
+    }
+    if (requestedSplitSqm > availableSqm + LENGTH_TOLERANCE) return false;
     if (splitRows.length === 0) return false;
     if (splitRows.some((row) => !row.productCode)) return false;
-
-    const selectedWidth = splitRows.reduce(
-      (sum, row) => sum + row.width,
-      0
-    );
-    return selectedWidth === originalWidth;
-  }, [requestedSqm, availableSqm, splitRows, originalWidth]);
+    if (selectedWidth <= 0) return false;
+    if (selectedWidth > originalWidth) return false;
+    if (totalRemainingWidth !== 0) return false;
+    return Math.abs(leftoverSqm) <= LENGTH_TOLERANCE;
+  }, [
+    requestedLengthValue,
+    requestedSplitSqm,
+    availableSqm,
+    splitRows,
+    selectedWidth,
+    originalWidth,
+    totalRemainingWidth,
+    leftoverSqm,
+  ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -226,7 +289,7 @@ export function InventorySplitDialog({
     try {
       await submitSplit({
         inventory_id: inventoryIdToUse,
-        requested_sqm: Number(requestedSqm),
+        requested_length_m: requestedLengthValue,
         splits: splitRows.map((row) => ({
           product_code: row.productCode!,
         })),
@@ -296,7 +359,7 @@ export function InventorySplitDialog({
             <div className="space-y-2">
               <Label>Available SQM</Label>
               <p className="text-sm font-medium bg-muted px-3 py-2 rounded-md">
-                {availableSqm}
+                {availableSqm.toFixed(4)}
               </p>
             </div>
 
@@ -304,28 +367,35 @@ export function InventorySplitDialog({
             <div className="space-y-2">
               <Label>Original Width</Label>
               <p className="text-sm font-medium bg-muted px-3 py-2 rounded-md">
-                {originalWidth}
+                {originalWidth} mm
               </p>
             </div>
 
-            {/* SQM Input */}
+            {/* Split Length Input */}
             <div className="space-y-2">
-              <Label htmlFor="requested-sqm">
-                How many SQM do you want to split?{" "}
+              <Label htmlFor="requested-length-meters">
+                Length To Split (meters){" "}
                 <span className="text-destructive">*</span>
               </Label>
               <Input
-                id="requested-sqm"
+                id="requested-length-meters"
                 type="number"
-                step="0.01"
-                min="0.01"
-                max={availableSqm}
-                placeholder="Enter SQM to split"
-                value={requestedSqm}
-                onChange={(e) => setRequestedSqm(e.target.value)}
+                step="0.001"
+                min="0.001"
+                max={maxSplitLengthMeters > 0 ? maxSplitLengthMeters : undefined}
+                placeholder="Enter split length in meters"
+                value={requestedLengthMeters}
+                onChange={(e) => setRequestedLengthMeters(e.target.value)}
                 disabled={!isFormEnabled}
                 required
               />
+              <p className="text-xs text-muted-foreground">
+                Max split length: {maxSplitLengthMeters.toFixed(4)} m
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Calculated split SQM (master width × length):{" "}
+                {requestedSplitSqm.toFixed(4)}
+              </p>
               {errors.length > 0 && (
                 <div className="space-y-1">
                   {errors.map((error, idx) => (
@@ -338,9 +408,9 @@ export function InventorySplitDialog({
             </div>
 
             {/* Dynamic Split Rows */}
-            {requestedSqm &&
-              Number(requestedSqm) > 0 &&
-              Number(requestedSqm) <= availableSqm && (
+            {requestedLengthMeters &&
+              requestedLengthValue > 0 &&
+              requestedSplitSqm <= availableSqm + LENGTH_TOLERANCE && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <Label>Select Product Codes for Split</Label>
@@ -406,6 +476,16 @@ export function InventorySplitDialog({
                       {totalRemainingWidth < 0 && (
                         <p className="text-xs text-destructive mt-1">
                           Selected widths exceed original width
+                        </p>
+                      )}
+                      {totalRemainingWidth >= 0 && (
+                        <p className="text-xs mt-1 text-muted-foreground">
+                          SQM for selected split rolls: {splitRowsSqm.toFixed(4)}
+                        </p>
+                      )}
+                      {totalRemainingWidth > 0 && (
+                        <p className="text-xs mt-1 text-muted-foreground">
+                          Leftover strip SQM at this length: {leftoverSqm.toFixed(4)}
                         </p>
                       )}
                       {totalRemainingWidth === 0 && (

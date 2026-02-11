@@ -109,7 +109,7 @@ export interface FetchSplitOptionsParams {
 
 export interface SubmitSplitRequest {
   inventory_id: string;
-  requested_sqm: number;
+  requested_length_m: number;
   splits: Array<{
     product_code: string;
   }>;
@@ -117,6 +117,10 @@ export interface SubmitSplitRequest {
 
 export interface SubmitSplitResponse {
   message: string;
+  requested_length_m?: number;
+  total_split_sqm?: number;
+  leftover_width_mm?: number;
+  leftover_sqm?: number;
   breakdown?: Array<{
     inventory_id: string;
     product_code: string;

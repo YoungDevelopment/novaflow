@@ -7,7 +7,7 @@
  * - product_code: Optional product code (used with barcode_tag)
  *
  * Returns eligibility status and product attributes needed for split validation.
- * Eligibility: unit_quantity > 1 AND type = 'product'
+ * Eligibility: unit_quantity > 0 AND type = 'product'
  * If barcode_tag is provided, sums all unit_quantity for that barcode_tag
  */
 
@@ -161,7 +161,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const eligible = unitQuantity > 1;
+    const eligible = unitQuantity > 0;
     
     // Get inventory_id for submit-split (use first one if querying by barcode_tag)
     let inventoryIdForSplit = inventoryId || "";

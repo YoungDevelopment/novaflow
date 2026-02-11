@@ -8,7 +8,7 @@
  *  - product_code: required for fetching split options
  *  - remaining_width: required, must be positive number
  *  - is_first_split: optional boolean
- *  - requested_sqm: required, must be positive number
+ *  - requested_length_m: required, must be positive number
  *  - splits: required array of product codes
  */
 import { z } from "zod";
@@ -54,10 +54,10 @@ export type FetchSplitOptionsInput = z.infer<typeof fetchSplitOptionsSchema>;
 // Schema for submitting split
 export const submitSplitSchema = z.object({
   inventory_id: z.string().min(1, "inventory_id is required and cannot be blank"),
-  requested_sqm: z
+  requested_length_m: z
     .number()
-    .positive("requested_sqm must be a positive number")
-    .min(0.01, "requested_sqm must be greater than 0"),
+    .positive("requested_length_m must be a positive number")
+    .min(0.001, "requested_length_m must be greater than 0"),
   splits: z
     .array(
       z.object({
