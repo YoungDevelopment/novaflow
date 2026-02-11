@@ -47,6 +47,11 @@ export function VendorForm({
     contact_number: "",
     email: "",
     website: "",
+    account_number: "",
+    iban_number: "",
+    swift_code: "",
+    bank_name: "",
+    branch_code: "",
   });
 
   // Populate form when vendor data changes (for update)
@@ -69,6 +74,11 @@ export function VendorForm({
         contact_number: vendor.Contact_Number || "",
         email: vendor.Email_ID || "",
         website: vendor.Website || "",
+        account_number: vendor.Account_Number || "",
+        iban_number: vendor.IBAN_Number || "",
+        swift_code: vendor.Swift_Code || "",
+        bank_name: vendor.Bank_Name || "",
+        branch_code: vendor.Branch_Code || "",
       });
     } else if (!isUpdate) {
       // Reset form for create mode
@@ -86,6 +96,11 @@ export function VendorForm({
         contact_number: "",
         email: "",
         website: "",
+        account_number: "",
+        iban_number: "",
+        swift_code: "",
+        bank_name: "",
+        branch_code: "",
       });
     }
   }, [vendor, isUpdate, isOpen]);
@@ -136,6 +151,11 @@ export function VendorForm({
         Contact_Person: formData.contact_person.trim() || null,
         Email_ID: formData.email.trim() || null,
         Website: formData.website.trim() || null,
+        Account_Number: formData.account_number.trim() || null,
+        IBAN_Number: formData.iban_number.trim() || null,
+        Swift_Code: formData.swift_code.trim() || null,
+        Bank_Name: formData.bank_name.trim() || null,
+        Branch_Code: formData.branch_code.trim() || null,
       };
 
       if (isUpdate && vendor) {
@@ -364,6 +384,71 @@ export function VendorForm({
                     name="website"
                     placeholder="Enter website URL"
                     value={formData.website}
+                    onChange={handleInputChange}
+                    className="bg-input text-foreground"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Bank Details Section */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="account_number">Account Number</Label>
+                  <Input
+                    id="account_number"
+                    name="account_number"
+                    placeholder="Enter account number"
+                    value={formData.account_number}
+                    onChange={handleInputChange}
+                    className="bg-input text-foreground"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="iban_number">IBAN Number</Label>
+                  <Input
+                    id="iban_number"
+                    name="iban_number"
+                    placeholder="Enter IBAN number"
+                    value={formData.iban_number}
+                    onChange={handleInputChange}
+                    className="bg-input text-foreground"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="swift_code">Swift Code</Label>
+                  <Input
+                    id="swift_code"
+                    name="swift_code"
+                    placeholder="Enter swift code"
+                    value={formData.swift_code}
+                    onChange={handleInputChange}
+                    className="bg-input text-foreground"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="bank_name">Bank Name</Label>
+                  <Input
+                    id="bank_name"
+                    name="bank_name"
+                    placeholder="Enter bank name"
+                    value={formData.bank_name}
+                    onChange={handleInputChange}
+                    className="bg-input text-foreground"
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="branch_code">Branch Code</Label>
+                  <Input
+                    id="branch_code"
+                    name="branch_code"
+                    placeholder="Enter branch code"
+                    value={formData.branch_code}
                     onChange={handleInputChange}
                     className="bg-input text-foreground"
                   />

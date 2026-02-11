@@ -71,8 +71,9 @@ export async function POST(req: NextRequest) {
       `INSERT INTO vendors (
           Vendor_ID, Vendor_Name, Vendor_Mask_ID, 
           NTN_Number, STRN_Number, Address_1, Address_2,
-          Contact_Number, Contact_Person, Email_ID, Website
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          Contact_Number, Contact_Person, Email_ID, Website,
+          Account_Number, IBAN_Number, Swift_Code, Bank_Name, Branch_Code
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         newVendorId,
         input.Vendor_Name.trim(),
@@ -85,6 +86,11 @@ export async function POST(req: NextRequest) {
         input.Contact_Person ?? null,
         input.Email_ID ?? null,
         input.Website ?? null,
+        input.Account_Number ?? null,
+        input.IBAN_Number ?? null,
+        input.Swift_Code ?? null,
+        input.Bank_Name ?? null,
+        input.Branch_Code ?? null,
       ]
     );
 
@@ -101,6 +107,11 @@ export async function POST(req: NextRequest) {
         Contact_Person: input.Contact_Person ?? "",
         Email_ID: input.Email_ID ?? "",
         Website: input.Website ?? "",
+        Account_Number: input.Account_Number ?? "",
+        IBAN_Number: input.IBAN_Number ?? "",
+        Swift_Code: input.Swift_Code ?? "",
+        Bank_Name: input.Bank_Name ?? "",
+        Branch_Code: input.Branch_Code ?? "",
       },
       201
     );

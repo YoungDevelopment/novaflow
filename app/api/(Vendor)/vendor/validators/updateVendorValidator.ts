@@ -24,6 +24,11 @@ export const updateVendorSchema = z.object({
   Contact_Person: z.union([z.string(), z.null()]).optional(),
   Email_ID: z.union([z.string().email(), z.null()]).optional(),
   Website: z.union([z.string().url(), z.null()]).optional(),
+  Account_Number: z.union([z.string(), z.null()]).optional(),
+  IBAN_Number: z.union([z.string(), z.null()]).optional(),
+  Swift_Code: z.union([z.string(), z.null()]).optional(),
+  Bank_Name: z.union([z.string(), z.null()]).optional(),
+  Branch_Code: z.union([z.string(), z.null()]).optional(),
 });
 
 export type UpdateVendorInput = z.infer<typeof updateVendorSchema>;

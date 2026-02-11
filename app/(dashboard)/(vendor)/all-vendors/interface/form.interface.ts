@@ -12,6 +12,11 @@ export interface VendorFormData {
   contact_number: string;
   email: string;
   website: string;
+  account_number: string;
+  iban_number: string;
+  swift_code: string;
+  bank_name: string;
+  branch_code: string;
 }
 
 export interface Vendor {
@@ -26,4 +31,9 @@ export interface Vendor {
   Contact_Person?: string;
   Email_ID?: string;
   Website?: string;
+  Account_Number?: string;
+  IBAN_Number?: string;
+  Swift_Code?: string;
+  Bank_Name?: string;
+  Branch_Code?: string;
 }

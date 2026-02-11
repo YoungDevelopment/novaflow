@@ -25,6 +25,11 @@ export const createVendorSchema = z.object({
   Contact_Person: z.string().optional().nullable(),
   Email_ID: z.string().email().optional().nullable(),
   Website: z.string().url().optional().nullable(),
+  Account_Number: z.string().optional().nullable(),
+  IBAN_Number: z.string().optional().nullable(),
+  Swift_Code: z.string().optional().nullable(),
+  Bank_Name: z.string().optional().nullable(),
+  Branch_Code: z.string().optional().nullable(),
 });
 
 export type CreateVendorInput = z.infer<typeof createVendorSchema>;

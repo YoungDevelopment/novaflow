@@ -67,6 +67,12 @@ const data: { navMain: NavSection[] } = {
         { title: "Vendor Hardware Codes", url: "/vendor-hardware-codes" },
       ],
     },
+    {
+      title: "Create User",
+      url: "/create-user",
+      allowedRoles: ["owner"], // 👈 only owners see this
+      items: [{ title: "Create User", url: "/create-user" }],
+    },
   ],
 };
 

@@ -62,9 +62,19 @@ export async function GET(req: NextRequest) {
 
     if (search) {
       where.push(
-        "(Vendor_Name LIKE ? OR Vendor_Mask_ID LIKE ? OR NTN_Number LIKE ? OR STRN_Number LIKE ?)"
+        "(Vendor_Name LIKE ? OR Vendor_Mask_ID LIKE ? OR NTN_Number LIKE ? OR STRN_Number LIKE ? OR Account_Number LIKE ? OR IBAN_Number LIKE ? OR Swift_Code LIKE ? OR Bank_Name LIKE ? OR Branch_Code LIKE ?)"
       );
-      params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+      params.push(
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`
+      );
     }
 
     const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
@@ -94,6 +104,11 @@ export async function GET(req: NextRequest) {
         Contact_Person,
         Email_ID,
         Website,
+        Account_Number,
+        IBAN_Number,
+        Swift_Code,
+        Bank_Name,
+        Branch_Code,
         Created_At,
         Updated_At
       FROM vendors

@@ -10,6 +10,11 @@ export interface Vendor {
   Contact_Person?: string;
   Email_ID?: string;
   Website?: string;
+  Account_Number?: string;
+  IBAN_Number?: string;
+  Swift_Code?: string;
+  Bank_Name?: string;
+  Branch_Code?: string;
   Created_At?: string;
   Updated_At?: string;
 }
@@ -25,6 +30,11 @@ export interface CreateVendorRequest {
   Contact_Person?: string | null;
   Email_ID?: string | null;
   Website?: string | null;
+  Account_Number?: string | null;
+  IBAN_Number?: string | null;
+  Swift_Code?: string | null;
+  Bank_Name?: string | null;
+  Branch_Code?: string | null;
 }
 
 export interface UpdateVendorRequest {
@@ -39,6 +49,11 @@ export interface UpdateVendorRequest {
   Contact_Person?: string | null;
   Email_ID?: string | null;
   Website?: string | null;
+  Account_Number?: string | null;
+  IBAN_Number?: string | null;
+  Swift_Code?: string | null;
+  Bank_Name?: string | null;
+  Branch_Code?: string | null;
 }
 
 export interface VendorApiResponse {
