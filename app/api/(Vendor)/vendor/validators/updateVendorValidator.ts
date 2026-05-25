@@ -29,6 +29,7 @@ export const updateVendorSchema = z.object({
   Swift_Code: z.union([z.string(), z.null()]).optional(),
   Bank_Name: z.union([z.string(), z.null()]).optional(),
   Branch_Code: z.union([z.string(), z.null()]).optional(),
+  Notes: z.union([z.string(), z.null()]).optional(),
 });
 
 export type UpdateVendorInput = z.infer<typeof updateVendorSchema>;

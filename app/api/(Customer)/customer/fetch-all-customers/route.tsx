@@ -1,0 +1,144 @@
+// /app/api/customer/fetch-all-customers/route.ts
+/**
+ * GET /api/customer/fetch-all-customers?page=1&limit=10
+ *
+ * - Fixed sort: Customer_Name ASC
+ * - Pagination: page (default 1), limit (default 10, max 100)
+ * - Database Query
+ * - Converts NULL DB values to "" in response objects
+ * - Uses jsonResponse / errorResponse from /app/api/response.ts
+ *
+ * Usage:
+ * GET /api/customer/fetch-all-customers?page=1&limit=10
+ */
+
+import { NextRequest } from "next/server";
+import { turso } from "@/lib/turso";
+import { jsonResponse, errorResponse } from "@/app/api/utils/response";
+
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 10;
+const MAX_LIMIT = 100;
+
+function toSafeInt(value: string | null, fallback: number) {
+  if (!value) return fallback;
+  const v = parseInt(value, 10);
+  return Number.isFinite(v) && v > 0 ? v : fallback;
+}
+
+function nullsToEmpty(obj: Record<string, any>) {
+  const out: Record<string, any> = {};
+  for (const k of Object.keys(obj)) {
+    const v = obj[k];
+    out[k] = v === null || v === undefined ? "" : v;
+  }
+  return out;
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const url = new URL(req.url);
+
+    const page = toSafeInt(url.searchParams.get("page"), DEFAULT_PAGE);
+    const limitRaw = toSafeInt(url.searchParams.get("limit"), DEFAULT_LIMIT);
+    const limit = Math.min(limitRaw, MAX_LIMIT);
+    const offset = (page - 1) * limit;
+
+    const search = url.searchParams.get("search") || ""; // ✅ only search, no customer filter
+
+    if (page < 1 || limit < 1) {
+      return errorResponse(
+        {
+          error: "ValidationError",
+          message: "page and limit must be positive integers",
+        },
+        400
+      );
+    }
+
+    // ✅ Build WHERE clause only for "search"
+    const where: string[] = [];
+    const params: any[] = [];
+
+    if (search) {
+      where.push(
+        "(Customer_Name LIKE ? OR Customer_Mask_ID LIKE ? OR NTN_Number LIKE ? OR STRN_Number LIKE ? OR Account_Number LIKE ? OR IBAN_Number LIKE ? OR Swift_Code LIKE ? OR Bank_Name LIKE ? OR Branch_Code LIKE ? OR Notes LIKE ?)"
+      );
+      params.push(
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`
+      );
+    }
+
+    const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+    // ✅ Count Total Customers
+    const countSql = `
+      SELECT COUNT(*) AS total
+      FROM customers
+      ${whereClause};
+    `;
+    const countRes = await turso.execute(countSql, params);
+    const total = countRes?.rows?.[0]?.total ?? 0;
+    const totalNum =
+      typeof total === "string" ? parseInt(total, 10) : Number(total) || 0;
+
+    // ✅ Fetch Paginated Customer List
+    const selectSql = `
+      SELECT
+        Customer_ID,
+        Customer_Name,
+        Customer_Mask_ID,
+        NTN_Number,
+        STRN_Number,
+        Address_1,
+        Address_2,
+        Contact_Number,
+        Contact_Person,
+        Email_ID,
+        Website,
+        Account_Number,
+        IBAN_Number,
+        Swift_Code,
+        Bank_Name,
+        Branch_Code,
+        Notes,
+        Created_At,
+        Updated_At
+      FROM customers
+      ${whereClause}
+      ORDER BY Customer_Name ASC
+      LIMIT ? OFFSET ?;
+    `;
+
+    const rowsRes = await turso.execute(selectSql, [...params, limit, offset]);
+    const rows = rowsRes?.rows ?? [];
+    const data = rows.map(nullsToEmpty);
+
+    return jsonResponse(
+      {
+        data,
+        pagination: {
+          total: totalNum,
+          page,
+          limit,
+          totalPages: Math.max(1, Math.ceil(totalNum / limit)),
+          search: search || "No Search Applied",
+        },
+      },
+      200
+    );
+  } catch (err: any) {
+    console.error("fetch-all-customers error:", err);
+    const message = err?.message ?? "Failed to fetch customers";
+    return errorResponse({ error: "InternalError", message }, 500);
+  }
+}

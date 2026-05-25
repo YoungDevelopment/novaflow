@@ -30,6 +30,7 @@ export const createVendorSchema = z.object({
   Swift_Code: z.string().optional().nullable(),
   Bank_Name: z.string().optional().nullable(),
   Branch_Code: z.string().optional().nullable(),
+  Notes: z.string().optional().nullable(),
 });
 
 export type CreateVendorInput = z.infer<typeof createVendorSchema>;

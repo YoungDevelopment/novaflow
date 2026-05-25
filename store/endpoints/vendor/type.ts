@@ -15,6 +15,7 @@ export interface Vendor {
   Swift_Code?: string;
   Bank_Name?: string;
   Branch_Code?: string;
+  Notes?: string;
   Created_At?: string;
   Updated_At?: string;
 }
@@ -35,6 +36,7 @@ export interface CreateVendorRequest {
   Swift_Code?: string | null;
   Bank_Name?: string | null;
   Branch_Code?: string | null;
+  Notes?: string | null;
 }
 
 export interface UpdateVendorRequest {
@@ -54,6 +56,7 @@ export interface UpdateVendorRequest {
   Swift_Code?: string | null;
   Bank_Name?: string | null;
   Branch_Code?: string | null;
+  Notes?: string | null;
 }
 
 export interface VendorApiResponse {

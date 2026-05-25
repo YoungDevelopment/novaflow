@@ -141,6 +141,7 @@ export async function PATCH(req: NextRequest) {
         Swift_Code: vendor.Swift_Code ?? "",
         Bank_Name: vendor.Bank_Name ?? "",
         Branch_Code: vendor.Branch_Code ?? "",
+        Notes: vendor.Notes ?? "",
         Created_At: vendor.Created_At,
         Updated_At: vendor.Updated_At,
       },

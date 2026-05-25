@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Vendor } from "@/store/endpoints/vendor/type";
 import { useCreateVendorMutation, useUpdateVendorMutation } from "@/store";
@@ -52,6 +53,7 @@ export function VendorForm({
     swift_code: "",
     bank_name: "",
     branch_code: "",
+    notes: "",
   });
 
   // Populate form when vendor data changes (for update)
@@ -79,6 +81,7 @@ export function VendorForm({
         swift_code: vendor.Swift_Code || "",
         bank_name: vendor.Bank_Name || "",
         branch_code: vendor.Branch_Code || "",
+        notes: vendor.Notes || "",
       });
     } else if (!isUpdate) {
       // Reset form for create mode
@@ -101,11 +104,14 @@ export function VendorForm({
         swift_code: "",
         bank_name: "",
         branch_code: "",
+        notes: "",
       });
     }
   }, [vendor, isUpdate, isOpen]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -156,6 +162,7 @@ export function VendorForm({
         Swift_Code: formData.swift_code.trim() || null,
         Bank_Name: formData.bank_name.trim() || null,
         Branch_Code: formData.branch_code.trim() || null,
+        Notes: formData.notes.trim() || null,
       };
 
       if (isUpdate && vendor) {
@@ -453,6 +460,21 @@ export function VendorForm({
                     className="bg-input text-foreground"
                   />
                 </div>
+              </div>
+            </div>
+
+            {/* Notes Section */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  name="notes"
+                  placeholder="Enter notes"
+                  value={formData.notes}
+                  onChange={handleInputChange}
+                  className="bg-input text-foreground"
+                />
               </div>
             </div>
 

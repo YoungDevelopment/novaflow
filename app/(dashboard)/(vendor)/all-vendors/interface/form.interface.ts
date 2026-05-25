@@ -17,6 +17,7 @@ export interface VendorFormData {
   swift_code: string;
   bank_name: string;
   branch_code: string;
+  notes: string;
 }
 
 export interface Vendor {
@@ -36,4 +37,5 @@ export interface Vendor {
   Swift_Code?: string;
   Bank_Name?: string;
   Branch_Code?: string;
+  Notes?: string;
 }

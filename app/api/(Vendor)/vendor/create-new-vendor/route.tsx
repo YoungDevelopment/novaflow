@@ -72,8 +72,8 @@ export async function POST(req: NextRequest) {
           Vendor_ID, Vendor_Name, Vendor_Mask_ID, 
           NTN_Number, STRN_Number, Address_1, Address_2,
           Contact_Number, Contact_Person, Email_ID, Website,
-          Account_Number, IBAN_Number, Swift_Code, Bank_Name, Branch_Code
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          Account_Number, IBAN_Number, Swift_Code, Bank_Name, Branch_Code, Notes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         newVendorId,
         input.Vendor_Name.trim(),
@@ -91,6 +91,7 @@ export async function POST(req: NextRequest) {
         input.Swift_Code ?? null,
         input.Bank_Name ?? null,
         input.Branch_Code ?? null,
+        input.Notes ?? null,
       ]
     );
 
@@ -112,6 +113,7 @@ export async function POST(req: NextRequest) {
         Swift_Code: input.Swift_Code ?? "",
         Bank_Name: input.Bank_Name ?? "",
         Branch_Code: input.Branch_Code ?? "",
+        Notes: input.Notes ?? "",
       },
       201
     );
